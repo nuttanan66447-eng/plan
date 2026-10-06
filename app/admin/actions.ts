@@ -120,6 +120,7 @@ export async function savePlan(_prev: PlanFormState | null, fd: FormData): Promi
     image,
     gallery: gallery.includes(image) ? gallery : [image, ...gallery],
     panorama: text("panorama", 500),
+    model_url: text("model_url", 500),
     features: fd.getAll("features").map(String).filter((f) => FEATURES.includes(f)),
     pages_arch: num("pages_arch") ?? 36,
     pages_struct: num("pages_struct") ?? 22,

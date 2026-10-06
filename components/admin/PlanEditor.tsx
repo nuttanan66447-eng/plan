@@ -44,6 +44,16 @@ async function upload(file: File, folder: string) {
   return sb.storage.from("plan-images").getPublicUrl(path).data.publicUrl;
 }
 
+async function uploadModel(file: File, folder: string) {
+  if (!/\.glb$/i.test(file.name)) throw new Error("รองรับเฉพาะไฟล์ .glb");
+  if (file.size > 50 * 1024 * 1024) throw new Error("ไฟล์ใหญ่เกิน 50MB — ลดรายละเอียดหรือบีบอัดด้วย Draco ก่อน");
+  const sb = browserClient();
+  const path = `${folder || "plan"}/model-${Date.now()}.glb`;
+  const { error } = await sb.storage.from("plan-images").upload(path, file, { contentType: "model/gltf-binary", upsert: false });
+  if (error) throw new Error(error.message);
+  return sb.storage.from("plan-images").getPublicUrl(path).data.publicUrl;
+}
+
 function Num({ name, label, value, step = "1", required, hint }: { name: string; label: string; value?: number | null; step?: string; required?: boolean; hint?: string }) {
   return (
     <div className="field">
@@ -69,6 +79,7 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
   const [gallery, setGallery] = useState<string[]>(plan ? plan.gallery.filter((g) => g !== plan.panorama) : []);
   const [cover, setCover] = useState<string>(plan?.image ?? "");
   const [panorama, setPanorama] = useState<string>(plan?.panorama ?? "");
+  const [modelUrl, setModelUrl] = useState<string>(plan?.model_url ?? "");
   const [busy, setBusy] = useState<string | null>(null);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
   const codeRef = useRef<HTMLInputElement>(null);
@@ -90,6 +101,18 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
       }
     } catch (e) {
       setUploadErr(`อัปโหลดไม่สำเร็จ: ${(e as Error).message}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+  const onModel = async (file: File | undefined) => {
+    if (!file) return;
+    setUploadErr(null);
+    setBusy(`กำลังอัปโหลดโมเดล 3D (${(file.size / 1024 / 1024).toFixed(1)} MB)...`);
+    try {
+      setModelUrl(await uploadModel(file, (codeRef.current?.value || "new").toUpperCase().replace(/[^A-Z0-9-]/g, "")));
+    } catch (e) {
+      setUploadErr(`อัปโหลดโมเดลไม่สำเร็จ: ${(e as Error).message}`);
     } finally {
       setBusy(null);
     }
@@ -122,6 +145,7 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
         <input type="hidden" name="image" value={cover} />
         <input type="hidden" name="gallery" value={JSON.stringify(gallery)} />
         <input type="hidden" name="panorama" value={panorama} />
+        <input type="hidden" name="model_url" value={modelUrl} />
 
         <section className="card p-5">
           <h2 className="text-[16px] font-bold">1. ข้อมูลหลัก</h2>
@@ -219,6 +243,21 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
                 </label>
                 {panorama && <button type="button" onClick={() => setPanorama("")} className="text-[12px] text-danger hover:underline">ลบ</button>}
               </div>
+            </div>
+          </div>
+          <div className="mt-5 border-t border-hairline pt-5">
+            <span className="field-label">โมเดล 3 มิติ (.glb) — ไม่บังคับ</span>
+            <p className="mt-1 text-[12px] text-muted">
+              ถ้าไม่อัปโหลด เว็บจะสร้างโมเดลจำลองจากข้อมูลแบบให้อัตโนมัติ • ส่งออกไฟล์ .glb ได้จาก SketchUp, Revit (ผ่าน Twinmotion/Blender), Blender หรือ 3ds Max • ขนาดไม่เกิน 50MB
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              {modelUrl ? (
+                <span className="flex items-center gap-2 bg-[#e9f5ee] px-3 py-1.5 text-[12.5px] text-success"><Icon name="deployed_code" /> มีโมเดล 3D แล้ว ({decodeURIComponent(modelUrl.split("/").pop() ?? "")})</span>
+              ) : <span className="text-[12.5px] text-subtle">ใช้โมเดลจำลองอัตโนมัติ</span>}
+              <label className="btn btn-ghost btn-sm cursor-pointer"><Icon name="upload_file" /> {modelUrl ? "เปลี่ยนไฟล์" : "อัปโหลด .glb"}
+                <input type="file" accept=".glb,model/gltf-binary" className="sr-only" onChange={(e) => { onModel(e.target.files?.[0]); e.target.value = ""; }} />
+              </label>
+              {modelUrl && <button type="button" onClick={() => setModelUrl("")} className="text-[12px] text-danger hover:underline">ลบโมเดล (กลับไปใช้แบบจำลอง)</button>}
             </div>
           </div>
           {busy && <p className="mt-3 flex items-center gap-2 text-[13px] text-bronze-dark"><Icon name="progress_activity" className="animate-spin" /> {busy}</p>}

@@ -3,12 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { Plan } from "@/lib/types";
 import { roomLayout } from "./FloorPlan";
 import { Icon } from "./Icon";
 
 // Interactive massing model generated from a plan's data (footprint, storeys, style, features).
 // It is schematic, not the BIM file itself, but lets visitors orbit, zoom and cut through floors.
+// When the admin uploads a real model (.glb) for the plan, that model is shown instead.
 
 const STOREY = 3.2;
 const WALL = 0.22;
@@ -29,6 +32,47 @@ interface Built {
   roof: THREE.Group;
   glass: THREE.MeshStandardMaterial;
   span: number;
+}
+
+/** Lawn + lot outline used under an uploaded model. */
+function buildGround(scene: THREE.Scene, lotW: number, lotD: number) {
+  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(lotW * 4, lotD * 4), new THREE.MeshStandardMaterial({ color: "#cfd8c4", roughness: 0.95 }));
+  lawn.rotation.x = -Math.PI / 2;
+  lawn.position.y = -0.01;
+  lawn.receiveShadow = true;
+  const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(lotW, lotD)), new THREE.LineBasicMaterial({ color: "#c59b27" }));
+  edge.rotation.x = -Math.PI / 2;
+  edge.position.y = 0.02;
+  scene.add(lawn, edge);
+}
+
+/** Load a .glb, convert to metres, centre it on the lot and rest it on the ground. */
+async function loadModel(url: string, scene: THREE.Scene) {
+  const draco = new DRACOLoader().setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
+  const loader = new GLTFLoader().setDRACOLoader(draco);
+  const gltf = await loader.loadAsync(url);
+  draco.dispose();
+  const root = gltf.scene;
+  let box = new THREE.Box3().setFromObject(root);
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  // exports often come in millimetres or centimetres; houses are 5–60 m across
+  const unit = maxDim > 1500 ? 0.001 : maxDim > 150 ? 0.01 : 1;
+  root.scale.multiplyScalar(unit);
+  box = new THREE.Box3().setFromObject(root);
+  const c = box.getCenter(new THREE.Vector3());
+  root.position.x -= c.x;
+  root.position.z -= c.z;
+  root.position.y -= box.min.y;
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh) return;
+    m.castShadow = m.receiveShadow = true;
+    // show inner faces when the model is sliced open with the cut slider
+    (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => (x.side = THREE.DoubleSide));
+  });
+  scene.add(root);
+  return new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
 }
 
 function buildHouse(plan: Plan, scene: THREE.Scene): Built {
@@ -241,11 +285,17 @@ export default function Model3D({ plan }: { plan: Plan }) {
     hemi: THREE.HemisphereLight;
     scene: THREE.Scene;
     home: THREE.Vector3;
+    clip: THREE.Plane;
   } | null>(null);
   const [mode, setMode] = useState<Mode>("full");
   const [auto, setAuto] = useState(true);
   const [hour, setHour] = useState(15);
   const [failed, setFailed] = useState(false);
+  const custom = Boolean(plan.model_url);
+  const [loading, setLoading] = useState(custom);
+  const [loadError, setLoadError] = useState(false);
+  const [modelH, setModelH] = useState(0);
+  const [cutH, setCutH] = useState<number | null>(null);
 
   useEffect(() => {
     const el = mount.current;
@@ -266,8 +316,15 @@ export default function Model3D({ plan }: { plan: Plan }) {
     renderer.domElement.style.touchAction = "none";
 
     const scene = new THREE.Scene();
-    const built = buildHouse(plan, scene);
-    const camera = new THREE.PerspectiveCamera(38, 1, 0.5, 600);
+    const clip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6);
+    renderer.clippingPlanes = [clip];
+    const lotW = plan.land_width ?? 20;
+    const lotD = plan.land_depth ?? 24;
+    const built: Built = custom
+      ? { floors: [], roof: new THREE.Group(), glass: new THREE.MeshStandardMaterial(), span: Math.max(lotW, lotD, 16) }
+      : buildHouse(plan, scene);
+    if (custom) buildGround(scene, lotW, lotD);
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 2000);
     const home = new THREE.Vector3(built.span * 0.85, built.span * 0.55, built.span * 1.05);
     camera.position.copy(home);
 
@@ -316,8 +373,43 @@ export default function Model3D({ plan }: { plan: Plan }) {
     };
     loop();
 
-    api.current = { controls, camera, built, sun, hemi, scene, home };
+    api.current = { controls, camera, built, sun, hemi, scene, home, clip };
+
+    let cancelled = false;
+    const fit = (span: number, height: number) => {
+      built.span = span;
+      home.set(span * 0.85, Math.max(span * 0.55, height * 1.4), span * 1.05);
+      camera.position.copy(home);
+      controls.target.set(0, height * 0.4, 0);
+      controls.minDistance = span * 0.2;
+      controls.maxDistance = span * 4;
+      sc.left = sc.bottom = -span;
+      sc.right = sc.top = span;
+      sc.far = span * 8;
+      sc.updateProjectionMatrix();
+    };
+    if (custom && plan.model_url) {
+      loadModel(plan.model_url, scene)
+        .then((size) => {
+          if (cancelled) return;
+          fit(Math.max(size.x, size.z, lotW, lotD) * 1.1, size.y);
+          setModelH(Math.ceil(size.y * 10) / 10);
+          setLoading(false);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          console.error("model load failed", err);
+          // fall back to the generated massing model so the tab is never empty
+          const b = buildHouse(plan, scene);
+          Object.assign(built, b);
+          fit(b.span, 8);
+          setLoadError(true);
+          setLoading(false);
+        });
+    }
+
     return () => {
+      cancelled = true;
       cancelAnimationFrame(raf);
       ro.disconnect();
       io.disconnect();
@@ -327,7 +419,13 @@ export default function Model3D({ plan }: { plan: Plan }) {
       renderer.domElement.remove();
       api.current = null;
     };
-  }, [plan]);
+  }, [plan, custom]);
+
+  // horizontal section through an uploaded model
+  useEffect(() => {
+    const a = api.current;
+    if (a) a.clip.constant = cutH ?? 1e6;
+  }, [cutH]);
 
   // floors / roof cut-away
   useEffect(() => {
@@ -383,6 +481,7 @@ export default function Model3D({ plan }: { plan: Plan }) {
     const a = api.current;
     if (!a) return;
     setMode("full");
+    setCutH(null);
     a.camera.position.copy(a.home);
     setAuto(true);
   };
@@ -406,13 +505,30 @@ export default function Model3D({ plan }: { plan: Plan }) {
         <label htmlFor="sun-hour" className="whitespace-nowrap">เวลา {String(hour).padStart(2, "0")}:00</label>
         <input id="sun-hour" type="range" min={6} max={18} value={hour} onChange={(e) => setHour(Number(e.target.value))} className="w-20 accent-[#c59b27] sm:w-28" />
       </div>
-      <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-1 bg-ink/90 p-1 text-[11.5px] text-white">
-        <span className="hidden px-2 text-white/60 sm:inline">มุมมอง:</span>
-        <button onClick={() => setMode("full")} className={`px-2.5 py-1 ${mode === "full" ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ทั้งหลัง</button>
-        {Array.from({ length: plan.storeys }, (_, i) => (
-          <button key={i} onClick={() => { setMode(i); setAuto(false); }} className={`px-2.5 py-1 ${mode === i ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ตัดชั้น {i + 1}</button>
-        ))}
-      </div>
+      {custom && !loadError ? (
+        <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-ink/90 px-2.5 py-1.5 text-[11.5px] text-white">
+          <label htmlFor="cut-h" className="whitespace-nowrap">{cutH == null ? "ตัดดูภายใน" : `ตัดที่ ${cutH.toFixed(1)} ม.`}</label>
+          <input id="cut-h" type="range" min={0.3} max={Math.max(0.5, modelH)} step={0.1} value={cutH ?? Math.max(0.5, modelH)}
+            onChange={(e) => { const v = Number(e.target.value); setCutH(v >= modelH ? null : v); setAuto(false); }}
+            disabled={loading} className="w-24 accent-[#c59b27] sm:w-36" />
+        </div>
+      ) : (
+        <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-1 bg-ink/90 p-1 text-[11.5px] text-white">
+          <span className="hidden px-2 text-white/60 sm:inline">มุมมอง:</span>
+          <button onClick={() => setMode("full")} className={`px-2.5 py-1 ${mode === "full" ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ทั้งหลัง</button>
+          {Array.from({ length: plan.storeys }, (_, i) => (
+            <button key={i} onClick={() => { setMode(i); setAuto(false); }} className={`px-2.5 py-1 ${mode === i ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ตัดชั้น {i + 1}</button>
+          ))}
+        </div>
+      )}
+      <span className={`pointer-events-none absolute left-3 top-12 hidden px-2 py-0.5 text-[10px] font-bold tracking-[0.08em] md:block ${custom && !loadError ? "bg-bronze text-ink" : "bg-white/85 text-ink"}`}>
+        {custom && !loadError ? "โมเดลจริงจากสถาปนิก" : "โมเดลจำลองจากข้อมูลแบบ"}
+      </span>
+      {loading && (
+        <div className="absolute inset-0 grid place-items-center bg-wash/70 text-[13px] text-ink">
+          <span className="flex items-center gap-2 bg-white px-4 py-2 shadow-[2px_2px_0_0_#1e232a]"><Icon name="progress_activity" className="animate-spin text-bronze-dark" /> กำลังโหลดโมเดล 3 มิติ...</span>
+        </div>
+      )}
       <div className="absolute bottom-3 right-3 flex bg-ink/90 text-white">
         <button onClick={() => zoom(0.8)} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ซูมเข้า"><Icon name="zoom_in" /></button>
         <button onClick={() => zoom(1.25)} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ซูมออก"><Icon name="zoom_out" /></button>

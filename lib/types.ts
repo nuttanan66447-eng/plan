@@ -27,6 +27,7 @@ export interface Plan {
   image: string;
   gallery: string[];
   panorama: string | null;
+  model_url: string | null;
   features: PlanFeature[];
   pages_arch: number | null;
   pages_struct: number | null;
