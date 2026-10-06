@@ -28,6 +28,8 @@ export interface Plan {
   gallery: string[];
   panorama: string | null;
   model_url: string | null;
+  section_image: string | null;
+  floorplan_images: string[];
   features: PlanFeature[];
   pages_arch: number | null;
   pages_struct: number | null;

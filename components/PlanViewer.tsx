@@ -36,9 +36,10 @@ export function PlanViewer({ plan }: { plan: Plan }) {
   const [zoom, setZoom] = useState(1);
   const [floor, setFloor] = useState(0);
   const [spot, setSpot] = useState<number | null>(null);
-  const photos = plan.gallery.filter((g) => g !== plan.panorama);
+  const photos = plan.gallery.filter((g) => g !== plan.panorama && g !== plan.section_image);
   const exterior = photos.length ? photos : [plan.image];
-  const sectionImg = plan.gallery.find((g) => g.includes("section")) ?? "/images/section-cutaway.jpg";
+  const sectionImg = plan.section_image ?? "/images/section-cutaway.jpg";
+  const floorImg = plan.floorplan_images?.[floor] || null;
 
   return (
     <div className="card overflow-hidden">
@@ -80,9 +81,15 @@ export function PlanViewer({ plan }: { plan: Plan }) {
           <div className="absolute inset-0 transition-transform duration-300" style={{ transform: `scale(${zoom})` }}>
             <Image src={sectionImg} alt={`${plan.code} ภาพตัด 3 มิติ`} fill sizes="(max-width: 1024px) 100vw, 860px" className="object-cover" />
             <span className="absolute left-4 top-4 bg-ink px-2 py-1 text-[10.5px] font-semibold tracking-[0.08em] text-white">SECTION A-A • CLEAR HEIGHT 3.00 M.</span>
+            {!plan.section_image && <span className="absolute right-4 top-4 bg-white/90 px-2 py-1 text-[10.5px] font-semibold">ภาพตัวอย่างประกอบ</span>}
           </div>
         )}
-        {tab === "plan" && <div className="absolute inset-0 transition-transform duration-300" style={{ transform: `scale(${zoom})` }}><FloorPlan plan={plan} floor={floor} /></div>}
+        {tab === "plan" && (
+          <div className="absolute inset-0 bg-white transition-transform duration-300" style={{ transform: `scale(${zoom})` }}>
+            {floorImg ? <Image src={floorImg} alt={`แปลนพื้นชั้น ${floor + 1} ${plan.code}`} fill sizes="(max-width: 1024px) 100vw, 860px" className="object-contain p-3" /> : <FloorPlan plan={plan} floor={floor} />}
+            <span className={`absolute right-4 top-4 px-2 py-1 text-[10.5px] font-bold tracking-[0.06em] ${floorImg ? "bg-bronze text-ink" : "bg-wash-2 text-ink"}`}>{floorImg ? `แปลนจริง ชั้น ${floor + 1}` : "แปลนจำลอง (schematic)"}</span>
+          </div>
+        )}
         {tab === "sun" && <div className="absolute inset-0"><SunPath plan={plan} /></div>}
 
         {tab !== "model" && <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-ink/90 p-1 text-[11.5px] text-white">

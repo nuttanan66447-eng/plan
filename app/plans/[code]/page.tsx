@@ -83,12 +83,15 @@ export default async function PlanPage({ params }: { params: Promise<{ code: str
               <p className="text-[12px] font-semibold text-bronze-dark">เล่มแบบ {pages} แผ่น (PDF)</p>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-              {[...plan.gallery.filter((g) => g !== plan.panorama).slice(0, 2).map((g, i) => ({ img: g, label: i ? "02 ผังตัดไอโซเมตริก" : "01 ทัศนียภาพค่ำ", icon: "visibility" })),
-                { img: null, label: "03 ผังฐานราก-คานคอดิน", icon: "foundation", tag: "S-01" },
-                { img: null, label: "04 ระบบไฟฟ้า-สุขาภิบาล", icon: "electrical_services", tag: "EE-04" }].map((t) => (
+              {[
+                { img: plan.gallery.find((g) => g !== plan.panorama && g !== plan.section_image) ?? plan.image, label: "01 ทัศนียภาพภายนอก", icon: "visibility" },
+                { img: plan.section_image, label: "02 ภาพตัด 3D", icon: "splitscreen", tag: "SEC" },
+                { img: plan.floorplan_images?.[0] || null, label: "03 แปลนพื้นชั้น 1", icon: "architecture", tag: "A-01", contain: true },
+                { img: plan.floorplan_images?.[1] || null, label: plan.storeys > 1 ? "04 แปลนพื้นชั้น 2" : "04 ระบบไฟฟ้า-สุขาภิบาล", icon: plan.storeys > 1 ? "architecture" : "electrical_services", tag: plan.storeys > 1 ? "A-02" : "EE-04", contain: true },
+              ].map((t) => (
                 <div key={t.label} className="card">
                   <div className="relative aspect-[4/3] bg-wash-2">
-                    {t.img ? <Image src={t.img} alt={t.label} fill sizes="200px" className="object-cover" /> : (
+                    {t.img ? <Image src={t.img} alt={t.label} fill sizes="200px" className={"contain" in t && t.contain ? "bg-white object-contain p-1" : "object-cover"} /> : (
                       <div className="blueprint grid h-full place-items-center"><Icon name={t.icon} className="text-[38px] text-subtle" />
                         <span className="absolute bottom-1.5 right-1.5 bg-ink px-1.5 text-[9px] font-bold text-white">{"tag" in t ? t.tag : ""}</span></div>
                     )}

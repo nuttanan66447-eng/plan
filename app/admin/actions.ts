@@ -92,6 +92,14 @@ export async function savePlan(_prev: PlanFormState | null, fd: FormData): Promi
   } catch {
     return { error: "ข้อมูลรูปภาพไม่ถูกต้อง" };
   }
+  let floorplans: string[] = [];
+  try {
+    // index = storey (0 = ground floor); keep "" placeholders so floors stay aligned
+    floorplans = (JSON.parse(String(fd.get("floorplan_images") ?? "[]")) as unknown[]).slice(0, 4).map((g) => (typeof g === "string" ? g : ""));
+    while (floorplans.length && !floorplans[floorplans.length - 1]) floorplans.pop();
+  } catch {
+    return { error: "ข้อมูลรูปแปลนไม่ถูกต้อง" };
+  }
   const image = text("image", 500) ?? gallery[0];
   if (!image) return { error: "กรุณาอัปโหลดรูปหลักอย่างน้อย 1 รูป" };
 
@@ -121,6 +129,8 @@ export async function savePlan(_prev: PlanFormState | null, fd: FormData): Promi
     gallery: gallery.includes(image) ? gallery : [image, ...gallery],
     panorama: text("panorama", 500),
     model_url: text("model_url", 500),
+    section_image: text("section_image", 500),
+    floorplan_images: floorplans,
     features: fd.getAll("features").map(String).filter((f) => FEATURES.includes(f)),
     pages_arch: num("pages_arch") ?? 36,
     pages_struct: num("pages_struct") ?? 22,

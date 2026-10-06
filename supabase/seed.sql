@@ -46,3 +46,5 @@ insert into public.reviews (name,role,district,rating,body,sort_order) values
 -- Panorama lives in its own column; the gallery holds exterior/section views only
 update public.plans set panorama = '/images/interior-360.jpg' where 'tour360' = any(features);
 update public.plans set gallery = array_remove(gallery, '/images/interior-360.jpg') where '/images/interior-360.jpg' = any(gallery);
+update public.plans set section_image = '/images/section-cutaway.jpg', gallery = array_remove(gallery, '/images/section-cutaway.jpg')
+where '/images/section-cutaway.jpg' = any(gallery) or image = '/images/section-cutaway.jpg';

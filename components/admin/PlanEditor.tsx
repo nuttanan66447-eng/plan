@@ -76,7 +76,14 @@ function Text({ name, label, value, required, placeholder, hint }: { name: strin
 
 export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; sort_order?: number } }) {
   const [state, action, pending] = useActionState<PlanFormState | null, FormData>(savePlan, null);
-  const [gallery, setGallery] = useState<string[]>(plan ? plan.gallery.filter((g) => g !== plan.panorama) : []);
+  const [gallery, setGallery] = useState<string[]>(() => {
+    if (!plan) return [];
+    const g = plan.gallery.filter((x) => x !== plan.panorama && x !== plan.section_image);
+    return plan.image && !g.includes(plan.image) && plan.image !== plan.section_image ? [plan.image, ...g] : g;
+  });
+  const [section, setSection] = useState<string>(plan?.section_image ?? "");
+  const [floorplans, setFloorplans] = useState<string[]>(plan?.floorplan_images ?? []);
+  const [floors, setFloors] = useState<number>(plan?.storeys ?? 2);
   const [cover, setCover] = useState<string>(plan?.image ?? "");
   const [panorama, setPanorama] = useState<string>(plan?.panorama ?? "");
   const [modelUrl, setModelUrl] = useState<string>(plan?.model_url ?? "");
@@ -84,7 +91,7 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
   const [uploadErr, setUploadErr] = useState<string | null>(null);
   const codeRef = useRef<HTMLInputElement>(null);
 
-  const onFiles = async (files: FileList | null, kind: "gallery" | "panorama") => {
+  const onFiles = async (files: FileList | null, kind: "gallery" | "panorama" | "section" | number) => {
     if (!files?.length) return;
     setUploadErr(null);
     const folder = (codeRef.current?.value || "new").toUpperCase().replace(/[^A-Z0-9-]/g, "");
@@ -94,6 +101,8 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
         setBusy(`กำลังอัปโหลด ${i + 1}/${files.length}...`);
         const url = await upload(f, folder);
         if (kind === "panorama") setPanorama(url);
+        else if (kind === "section") setSection(url);
+        else if (typeof kind === "number") setFloorplans((fp) => { const n = [...fp]; while (n.length <= kind) n.push(""); n[kind] = url; return n; });
         else {
           setGallery((g) => [...g, url]);
           setCover((c) => c || url);
@@ -134,6 +143,10 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
     <div className="space-y-6">
       <form
         className="space-y-6"
+        onChange={(e) => {
+          const t = e.target as unknown as HTMLInputElement;
+          if (t.name === "storeys") setFloors(Math.min(4, Math.max(1, Number(t.value) || 1)));
+        }}
         onSubmit={(e) => {
           // submit through a transition so a validation error doesn't reset the whole form
           e.preventDefault();
@@ -146,6 +159,8 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
         <input type="hidden" name="gallery" value={JSON.stringify(gallery)} />
         <input type="hidden" name="panorama" value={panorama} />
         <input type="hidden" name="model_url" value={modelUrl} />
+        <input type="hidden" name="section_image" value={section} />
+        <input type="hidden" name="floorplan_images" value={JSON.stringify(floorplans.slice(0, floors))} />
 
         <section className="card p-5">
           <h2 className="text-[16px] font-bold">1. ข้อมูลหลัก</h2>
@@ -210,9 +225,11 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
         </section>
 
         <section className="card p-5">
-          <h2 className="text-[16px] font-bold">3. รูปภาพ</h2>
-          <p className="text-[12px] text-muted">อัปโหลดได้หลายรูป (JPG/PNG/WebP) ระบบย่อขนาดให้อัตโนมัติ — คลิกที่รูปเพื่อตั้งเป็นรูปหลักบนการ์ด</p>
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <h2 className="text-[16px] font-bold">3. รูปภาพ &amp; สื่อในหน้าแบบ</h2>
+          <p className="text-[12px] text-muted">แบ่งตามแท็บที่ลูกค้าเห็นในหน้าแบบบ้าน • รองรับ JPG/PNG/WebP ระบบย่อขนาดให้อัตโนมัติ • ช่องที่เว้นว่าง เว็บจะใช้ภาพ/แบบจำลองอัตโนมัติแทน</p>
+
+          <MediaGroup no="3.1" icon="photo_library" tab="ภาพจริง EXTERIOR" desc="ภาพทัศนียภาพภายนอก อัปโหลดได้หลายรูป — คลิกรูปเพื่อตั้งเป็นรูปหลักบนการ์ดแบบบ้าน (จำเป็นอย่างน้อย 1 รูป)">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {gallery.map((g, i) => (
               <div key={g} className={`relative border-2 ${cover === g ? "border-bronze" : "border-transparent"}`}>
                 <button type="button" onClick={() => setCover(g)} className="relative block aspect-[16/10] w-full bg-wash-2" aria-label="ตั้งเป็นรูปหลัก">
@@ -231,22 +248,31 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
               <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { onFiles(e.target.files, "gallery"); e.target.value = ""; }} />
             </label>
           </div>
-          <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-            <div className="field">
-              <span className="field-label">ภาพ 360° ภายในบ้าน (ภาพพาโนรามาแนวกว้าง ไม่บังคับ)</span>
-              <div className="flex items-center gap-3">
-                {panorama ? (
-                  <div className="relative h-16 w-40 shrink-0 bg-wash-2"><Image src={panorama} alt="" fill sizes="160px" className="object-cover" /></div>
-                ) : <span className="text-[12.5px] text-subtle">ยังไม่มีภาพ 360°</span>}
-                <label className="btn btn-ghost btn-sm cursor-pointer"><Icon name="360" /> {panorama ? "เปลี่ยนภาพ" : "อัปโหลด"}
-                  <input type="file" accept="image/*" className="sr-only" onChange={(e) => { onFiles(e.target.files, "panorama"); e.target.value = ""; }} />
-                </label>
-                {panorama && <button type="button" onClick={() => setPanorama("")} className="text-[12px] text-danger hover:underline">ลบ</button>}
-              </div>
+          </MediaGroup>
+
+          <MediaGroup no="3.2" icon="splitscreen" tab="ตัดขวาง SECTION 3D" desc="ภาพตัดอาคาร / Dollhouse 3 มิติ แสดงความสูงฝ้าและการจัดห้อง (ไม่บังคับ)">
+            <ImageSlot value={section} label="ภาพตัด 3D" onPick={(f) => onFiles(f, "section")} onClear={() => setSection("")} />
+          </MediaGroup>
+
+          <MediaGroup no="3.3" icon="architecture" tab="แปลน 2D FLOORPLAN" desc={`แบบแปลนพื้นแต่ละชั้น (${floors} ชั้น ตามจำนวนชั้นด้านบน) — ภาพพื้นหลังขาวจะดูดีที่สุด • ชั้นที่ไม่อัปโหลดจะแสดงแปลนจำลองอัตโนมัติ`}>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: floors }, (_, i) => (
+                <ImageSlot key={i} contain value={floorplans[i] ?? ""} label={`แปลนชั้น ${i + 1}`} onPick={(f) => onFiles(f, i)}
+                  onClear={() => setFloorplans((fp) => fp.map((x, k) => (k === i ? "" : x)))} />
+              ))}
             </div>
-          </div>
+          </MediaGroup>
+
+          <MediaGroup no="3.4" icon="light_mode" tab="ทิศแดด-ลม (SUN PATH)" desc="สร้างอัตโนมัติจากข้อมูลแบบ ไม่ต้องอัปโหลด">
+            <p className="flex items-center gap-2 text-[12.5px] text-success"><Icon name="check_circle" /> ระบบสร้างแผนภาพทิศแดด-ลมให้อัตโนมัติ</p>
+          </MediaGroup>
+
+          <MediaGroup no="3.5" icon="360" tab="ทัวร์ 360° ภายใน" desc="ภาพพาโนรามาแนวกว้าง (equirectangular) จากกล้อง 360° หรือเรนเดอร์ 360° (ไม่บังคับ)">
+            <ImageSlot value={panorama} label="ภาพ 360°" wide onPick={(f) => onFiles(f, "panorama")} onClear={() => setPanorama("")} />
+          </MediaGroup>
+
           <div className="mt-5 border-t border-hairline pt-5">
-            <span className="field-label">โมเดล 3 มิติ (.glb) — ไม่บังคับ</span>
+            <span className="flex items-center gap-2 text-[14px] font-bold"><span className="bg-ink px-1.5 text-[11px] text-white">3.6</span><Icon name="3d_rotation" className="text-bronze-dark" /> โมเดล 3D หมุนได้ (.glb) — ไม่บังคับ</span>
             <p className="mt-1 text-[12px] text-muted">
               ถ้าไม่อัปโหลด เว็บจะสร้างโมเดลจำลองจากข้อมูลแบบให้อัตโนมัติ • ไฟล์ .glb ขนาดไม่เกิน 50MB • หน่วย มม./ซม./ม. ได้ ระบบแปลงให้เอง
             </p>
@@ -325,6 +351,42 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
           <button className="btn btn-sm border-danger text-danger hover:bg-danger hover:text-white"><Icon name="delete" /> ลบแบบ</button>
         </form>
       )}
+    </div>
+  );
+}
+
+function MediaGroup({ no, icon, tab, desc, children }: { no: string; icon: string; tab: string; desc: string; children: React.ReactNode }) {
+  return (
+    <div className="mt-5 border-t border-hairline pt-5">
+      <p className="flex items-center gap-2 text-[14px] font-bold">
+        <span className="bg-ink px-1.5 text-[11px] text-white">{no}</span>
+        <Icon name={icon} className="text-bronze-dark" /> แท็บ “{tab}”
+      </p>
+      <p className="mb-3 mt-1 text-[12px] text-muted">{desc}</p>
+      {children}
+    </div>
+  );
+}
+
+function ImageSlot({ value, label, onPick, onClear, contain = false, wide = false }: {
+  value: string; label: string; onPick: (f: FileList | null) => void; onClear: () => void; contain?: boolean; wide?: boolean;
+}) {
+  return (
+    <div className={wide ? "max-w-xl" : "max-w-sm"}>
+      <label className={`relative block cursor-pointer overflow-hidden border-2 ${value ? "border-hairline bg-white" : "border-dashed border-hairline bg-wash hover:border-ink"} ${wide ? "aspect-[2/1]" : "aspect-[16/10]"}`}>
+        {value ? (
+          <Image src={value} alt={label} fill sizes="400px" className={contain ? "object-contain p-1" : "object-cover"} />
+        ) : (
+          <span className="absolute inset-0 grid place-items-center text-center text-[12.5px] text-muted">
+            <span><Icon name="add_photo_alternate" className="text-[26px]" /><br />อัปโหลด{label}</span>
+          </span>
+        )}
+        <input type="file" accept="image/*" className="sr-only" onChange={(e) => { onPick(e.target.files); e.target.value = ""; }} />
+      </label>
+      <div className="mt-1 flex items-center justify-between text-[11.5px]">
+        <span className="font-semibold">{label}</span>
+        {value ? <button type="button" onClick={onClear} className="text-danger hover:underline">ลบ</button> : <span className="text-subtle">ใช้แบบอัตโนมัติ</span>}
+      </div>
     </div>
   );
 }
