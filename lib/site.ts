@@ -1,6 +1,6 @@
 export const SITE = {
   name: "NATBUILD",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://archiplan-kappa.vercel.app",
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://natbuild.vercel.app",
   phone: "02-892-4114",
   phoneHref: "tel:028924114",
   mobile: "098-765-4321",
