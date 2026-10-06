@@ -40,13 +40,26 @@ function PhotoSlot({ label, hint, value, onChange, busy }: { label: string; hint
   );
 }
 
-export function ProjectEditor({ project, plans }: { project?: P; plans: { code: string; name_en: string }[] }) {
+export interface ReviewOption { id: string; name: string; role: string | null; body: string; rating: number; is_published?: boolean; plan_code?: string | null }
+
+export function ProjectEditor({ project, plans, reviews = [] }: { project?: P; plans: { code: string; name_en: string }[]; reviews?: ReviewOption[] }) {
   const [state, action, pending] = useActionState<ProjectFormState | null, FormData>(saveProject, null);
   const [image, setImage] = useState(project?.image ?? "");
   const [before, setBefore] = useState(project?.before_image ?? "");
   const [busy, setBusy] = useState<"image" | "before" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const codeRef = useRef<HTMLInputElement>(null);
+  const quoteRef = useRef<HTMLTextAreaElement>(null);
+  const quoteByRef = useRef<HTMLInputElement>(null);
+  const [picked, setPicked] = useState("");
+
+  const pickReview = (id: string) => {
+    setPicked(id);
+    const r = reviews.find((x) => x.id === id);
+    if (!r) return;
+    if (quoteRef.current) quoteRef.current.value = r.body;
+    if (quoteByRef.current) quoteByRef.current.value = r.role ? `${r.name} • ${r.role}` : r.name;
+  };
 
   const upload = async (f: File, which: "image" | "before") => {
     setErr(null);
@@ -117,12 +130,29 @@ export function ProjectEditor({ project, plans }: { project?: P; plans: { code: 
 
         <section className="card p-5">
           <h2 className="text-[16px] font-bold">3. คำพูดจากเจ้าของบ้าน (ไม่บังคับ)</h2>
+          <p className="mt-1 text-[12px] text-muted">พิมพ์เอง หรือเลือกจากรีวิวที่ลูกค้าส่งมาทางหน้าเว็บ แล้วแก้ไขข้อความต่อได้</p>
+          {reviews.length > 0 && (
+            <div className="field mt-4">
+              <label htmlFor="pj-review" className="field-label">เลือกจากรีวิวลูกค้า</label>
+              <select id="pj-review" value={picked} onChange={(e) => pickReview(e.target.value)} className="input">
+                <option value="">— เลือกรีวิว ({reviews.length}) —</option>
+                {reviews.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {"★".repeat(r.rating)} {r.name}{r.plan_code ? ` • ${r.plan_code}` : ""}{r.is_published === false ? " (รอตรวจสอบ)" : ""} — {r.body.slice(0, 60)}{r.body.length > 60 ? "…" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="mt-4 grid gap-4 md:grid-cols-[1fr_280px]">
             <div className="field">
               <label htmlFor="pj-quote" className="field-label">คำพูด / รีวิว</label>
-              <textarea id="pj-quote" name="quote" defaultValue={project?.quote ?? ""} className="input min-h-[90px]" placeholder="ชอบคอร์ทยาร์ดต้นไม้กลางบ้านมากค่ะ..." />
+              <textarea id="pj-quote" ref={quoteRef} name="quote" defaultValue={project?.quote ?? ""} className="input min-h-[90px]" placeholder="ชอบคอร์ทยาร์ดต้นไม้กลางบ้านมากค่ะ..." />
             </div>
-            <Field name="quote_by" label="ชื่อเจ้าของบ้าน" value={project?.quote_by} placeholder="คุณพรรณิภา (อาจารย์)" />
+            <div className="field">
+              <label htmlFor="pj-quote_by" className="field-label">ชื่อเจ้าของบ้าน</label>
+              <input id="pj-quote_by" ref={quoteByRef} name="quote_by" defaultValue={project?.quote_by ?? ""} placeholder="คุณพรรณิภา (อาจารย์)" className="input" />
+            </div>
           </div>
         </section>
 
