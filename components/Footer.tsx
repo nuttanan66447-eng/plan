@@ -16,7 +16,7 @@ export function Footer() {
     <footer className="mt-auto border-t border-hairline bg-white">
       <div className="shell grid gap-10 py-14 md:grid-cols-2 lg:grid-cols-4">
         <div>
-          <Logo />
+          <Logo className="h-14 w-auto" />
           <p className="mt-5 text-[13px] leading-6 text-muted">
             สถาปัตยกรรมที่คำนวณได้จริง บริการจำหน่ายแบบบ้านโมเดิร์น สไตล์สแกนดิเนเวีย-มินิมอล พร้อมไฟล์ 3D BIM, BOQ
             ละเอียด และเอกสารวิศวกรรมรับรองพร้อมยื่นเทศบาล
