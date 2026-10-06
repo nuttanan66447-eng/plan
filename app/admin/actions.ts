@@ -211,3 +211,81 @@ export async function moderateReview(fd: FormData) {
   if (data?.plan_code) revalidatePath(`/plans/${data.plan_code}`);
   revalidatePath("/admin/reviews");
 }
+
+export interface ProjectFormState {
+  error?: string;
+  saved?: boolean;
+}
+
+export async function saveProject(_prev: ProjectFormState | null, fd: FormData): Promise<ProjectFormState> {
+  const text = (k: string, max = 300) => {
+    const v = String(fd.get(k) ?? "").trim().slice(0, max);
+    return v || null;
+  };
+  const num = (k: string) => {
+    const v = text(k, 20);
+    if (v == null) return null;
+    const n = Number(v.replace(/,/g, ""));
+    return Number.isFinite(n) && n >= 0 ? n : NaN;
+  };
+
+  const id = text("id", 40);
+  const code = text("code", 30)?.toUpperCase() ?? "";
+  if (!/^[A-Z0-9][A-Z0-9-]{2,29}$/.test(code)) return { error: "รหัสผลงานต้องเป็นตัวอักษรภาษาอังกฤษ ตัวเลข หรือ - (3-30 ตัว) เช่น RE-SL-035" };
+  const title = text("title", 160);
+  const district = text("district", 80);
+  if (!title || !district) return { error: "กรุณากรอกชื่อผลงานและอำเภอ" };
+  const image = text("image", 500);
+  if (!image) return { error: "กรุณาอัปโหลดรูปบ้านที่สร้างเสร็จ" };
+  const numbers = { area_sqm: num("area_sqm"), bedrooms: num("bedrooms"), bathrooms: num("bathrooms"), budget_million: num("budget_million"), sort_order: num("sort_order") };
+  if (Object.values(numbers).some((v) => Number.isNaN(v))) return { error: "ตัวเลขบางช่องไม่ถูกต้อง" };
+  const handover = text("handover_on", 10);
+
+  const row = {
+    code,
+    title,
+    district,
+    province: text("province", 80) ?? "ร้อยเอ็ด",
+    style_label: text("style_label", 80),
+    plan_code: text("plan_code", 30),
+    ...numbers,
+    sort_order: numbers.sort_order ?? 100,
+    highlight: text("highlight", 120),
+    description: text("description", 2000),
+    quote: text("quote", 1500),
+    quote_by: text("quote_by", 160),
+    handover_on: handover && /^\d{4}-\d{2}-\d{2}$/.test(handover) ? handover : null,
+    image,
+    before_image: text("before_image", 500),
+    featured: fd.get("featured") === "on",
+    is_published: fd.get("is_published") === "on",
+  };
+
+  const sb = await serverClient();
+  // only one project can be the featured hero on /portfolio
+  if (row.featured) {
+    const clear = sb.from("projects").update({ featured: false }).eq("featured", true);
+    await (id ? clear.neq("id", id) : clear);
+  }
+  const { error } = id ? await sb.from("projects").update(row).eq("id", id) : await sb.from("projects").insert(row);
+  if (error) {
+    if (error.code === "23505") return { error: `รหัส ${code} มีอยู่แล้ว กรุณาใช้รหัสอื่น` };
+    if (error.code === "23503") return { error: "รหัสแบบบ้านที่อ้างอิงไม่มีอยู่ในระบบ" };
+    console.error("saveProject", error.message);
+    return { error: "บันทึกไม่สำเร็จ: " + error.message };
+  }
+  revalidatePath("/portfolio");
+  if (row.plan_code) revalidatePath(`/plans/${row.plan_code}`);
+  if (!id) redirect("/admin/projects?saved=" + encodeURIComponent(code));
+  return { saved: true };
+}
+
+export async function deleteProject(fd: FormData) {
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  const sb = await serverClient();
+  const { data } = await sb.from("projects").delete().eq("id", id).select("code, plan_code").maybeSingle();
+  revalidatePath("/portfolio");
+  if (data?.plan_code) revalidatePath(`/plans/${data.plan_code}`);
+  redirect("/admin/projects?deleted=" + encodeURIComponent(data?.code ?? ""));
+}
