@@ -76,6 +76,10 @@ export interface Review {
   district: string | null;
   rating: number;
   body: string;
+  plan_code: string | null;
+  project_type: string | null;
+  is_published?: boolean;
+  created_at?: string;
 }
 
 export type LeadType = "consult" | "custom_design" | "inspection" | "turnkey" | "boq" | "order" | "callback";

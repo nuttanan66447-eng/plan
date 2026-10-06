@@ -248,8 +248,41 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
           <div className="mt-5 border-t border-hairline pt-5">
             <span className="field-label">โมเดล 3 มิติ (.glb) — ไม่บังคับ</span>
             <p className="mt-1 text-[12px] text-muted">
-              ถ้าไม่อัปโหลด เว็บจะสร้างโมเดลจำลองจากข้อมูลแบบให้อัตโนมัติ • ส่งออกไฟล์ .glb ได้จาก SketchUp, Revit (ผ่าน Twinmotion/Blender), Blender หรือ 3ds Max • ขนาดไม่เกิน 50MB
+              ถ้าไม่อัปโหลด เว็บจะสร้างโมเดลจำลองจากข้อมูลแบบให้อัตโนมัติ • ไฟล์ .glb ขนาดไม่เกิน 50MB • หน่วย มม./ซม./ม. ได้ ระบบแปลงให้เอง
             </p>
+            <details className="group mt-3 border border-hairline bg-wash" open={!modelUrl}>
+              <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-[13px] font-semibold">
+                <span className="flex items-center gap-2"><Icon name="help" className="text-bronze-dark" /> วิธีส่งออกไฟล์ .glb จากโปรแกรมต่างๆ</span>
+                <Icon name="expand_more" className="transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="overflow-x-auto border-t border-hairline bg-white">
+                <table className="w-full min-w-[560px] text-[12.5px]">
+                  <thead className="bg-wash text-left text-[11.5px] text-muted">
+                    <tr><th className="w-40 px-4 py-2">โปรแกรม</th><th className="px-4 py-2">วิธีส่งออก</th></tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      ["SketchUp 2023 ขึ้นไป", <>File → Export → 3D Model → เลือกชนิดไฟล์ <b>glTF Binary (*.glb)</b> → Export</>],
+                      ["SketchUp รุ่นเก่า", <>ติดตั้งส่วนขยาย <b>glTF Export</b> จาก Extension Warehouse แล้ว Extensions → glTF Export → Export Binary (.glb)</>],
+                      ["Revit", <>File → Export → <b>FBX</b> → เปิดไฟล์ FBX ใน Blender (File → Import → FBX) → File → Export → <b>glTF 2.0</b> → Format: <b>glTF Binary (.glb)</b> · หรือเปิดใน Twinmotion แล้ว Export → glTF</>],
+                      ["Blender", <>File → Export → <b>glTF 2.0 (.glb/.gltf)</b> → Format: <b>glTF Binary</b> → ติ๊ก <b>Compression (Draco)</b> เพื่อลดขนาดไฟล์</>],
+                      ["3ds Max", <>File → Export → เลือก <b>glTF Binary (*.glb)</b> (3ds Max 2023+) หรือส่งออก FBX แล้วแปลงใน Blender</>],
+                      ["ArchiCAD", <>File → Save As → <b>FBX</b> (หรือ OBJ) → แปลงเป็น .glb ใน Blender เหมือน Revit</>],
+                    ].map(([app, how]) => (
+                      <tr key={app as string} className="border-t border-hairline align-top">
+                        <td className="px-4 py-2.5 font-semibold">{app}</td>
+                        <td className="px-4 py-2.5 text-ink-3">{how}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <ul className="space-y-1 border-t border-hairline px-4 py-3 text-[12px] text-muted">
+                  <li>• ไฟล์ใหญ่เกิน 50MB: ลบเฟอร์นิเจอร์/ต้นไม้ที่ไม่จำเป็น ลดขนาด texture หรือเปิด Draco compression</li>
+                  <li>• แนะนำให้หน้าบ้านหันไปทางแกน +Z (ด้านหน้าในโปรแกรม) เพื่อให้มุมกล้องเริ่มต้นเห็นหน้าบ้าน</li>
+                  <li>• ตรวจไฟล์ก่อนอัปโหลดได้ที่ gltf-viewer.donmccurdy.com (ลากไฟล์วางเพื่อดูตัวอย่าง)</li>
+                </ul>
+              </div>
+            </details>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               {modelUrl ? (
                 <span className="flex items-center gap-2 bg-[#e9f5ee] px-3 py-1.5 text-[12.5px] text-success"><Icon name="deployed_code" /> มีโมเดล 3D แล้ว ({decodeURIComponent(modelUrl.split("/").pop() ?? "")})</span>

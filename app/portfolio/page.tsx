@@ -5,7 +5,9 @@ import { BeforeAfter } from "@/components/BeforeAfter";
 import { Icon } from "@/components/Icon";
 import { Panorama } from "@/components/Panorama";
 import { SectionHeading } from "@/components/SectionHeading";
-import { listProjects, listReviews } from "@/lib/data";
+import { RatingSummary, ReviewCards } from "@/components/ReviewList";
+import { ReviewForm } from "@/components/ReviewForm";
+import { allPlanCodes, listProjects, listReviews } from "@/lib/data";
 import { num, thaiDate } from "@/lib/format";
 import { SITE } from "@/lib/site";
 
@@ -17,7 +19,7 @@ export const metadata: Metadata = {
 
 export default async function PortfolioPage({ searchParams }: { searchParams: Promise<{ district?: string }> }) {
   const { district } = await searchParams;
-  const [projects, reviews] = await Promise.all([listProjects(), listReviews()]);
+  const [projects, reviews, planCodes] = await Promise.all([listProjects(), listReviews(), allPlanCodes()]);
   const featured = projects.find((p) => p.featured) ?? projects[0];
   const districts = [...new Set(projects.map((p) => p.district))];
   const grid = projects.filter((p) => p.id !== featured?.id && (!district || p.district === district));
@@ -138,17 +140,19 @@ export default async function PortfolioPage({ searchParams }: { searchParams: Pr
               </div>
             </div>
           )}
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            {reviews.map((r) => (
-              <figure key={r.id} className="card flex flex-col p-5">
-                <div className="flex justify-between"><span className="text-bronze">{"★".repeat(r.rating)}</span><span className="text-[11px] text-muted">{r.district}</span></div>
-                <blockquote className="mt-3 flex-1 text-[13px] text-ink-3">“{r.body}”</blockquote>
-                <figcaption className="mt-4 flex items-center gap-3 border-t border-hairline pt-3">
-                  <span className="grid h-9 w-9 place-items-center bg-wash-2 text-[12px] font-bold text-bronze-dark">{r.name.replace(/^(คุณ|พ\.ต\.ท\.)\s*/, "").slice(0, 2)}</span>
-                  <span><b className="block text-[13px]">{r.name}</b><span className="text-[11px] text-muted">{r.role}</span></span>
-                </figcaption>
-              </figure>
-            ))}
+          <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
+            <RatingSummary reviews={reviews} />
+            <a href="#write-review" className="btn btn-outline btn-sm"><Icon name="rate_review" /> เขียนรีวิวของคุณ</a>
+          </div>
+          <div className="mt-5"><ReviewCards reviews={reviews} /></div>
+
+          <div id="write-review" className="card mt-10 grid scroll-mt-28 gap-8 p-6 md:p-8 lg:grid-cols-[320px_1fr]">
+            <div>
+              <p className="eyebrow">Share Your Experience</p>
+              <h3 className="mt-2 text-[22px] font-bold">เคยใช้บริการ ArchiPlan? เขียนรีวิวให้เราหน่อย</h3>
+              <p className="mt-2 text-[13.5px] text-muted">รีวิวของคุณช่วยให้ครอบครัวอื่นตัดสินใจสร้างบ้านได้ง่ายขึ้น และช่วยให้เราพัฒนาบริการให้ดียิ่งขึ้น</p>
+            </div>
+            <ReviewForm plans={planCodes} />
           </div>
         </div>
       </section>

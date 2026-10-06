@@ -187,3 +187,17 @@ export async function importBoq(_prev: BoqImportState | null, fd: FormData): Pro
   revalidatePath("/boq");
   return { imported: items.length };
 }
+
+export async function moderateReview(fd: FormData) {
+  const id = String(fd.get("id") ?? "");
+  const op = String(fd.get("op") ?? "");
+  if (!id || !["publish", "hide", "delete"].includes(op)) return;
+  const sb = await serverClient();
+  const { data } =
+    op === "delete"
+      ? await sb.from("reviews").delete().eq("id", id).select("plan_code").maybeSingle()
+      : await sb.from("reviews").update({ is_published: op === "publish" }).eq("id", id).select("plan_code").maybeSingle();
+  revalidatePath("/portfolio");
+  if (data?.plan_code) revalidatePath(`/plans/${data.plan_code}`);
+  revalidatePath("/admin/reviews");
+}

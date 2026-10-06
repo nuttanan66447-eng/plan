@@ -85,3 +85,44 @@ export async function submitLead(_prev: LeadState | null, fd: FormData): Promise
         : "ได้รับข้อมูลเรียบร้อย สถาปนิกจะติดต่อกลับภายใน 24 ชั่วโมงทำการ",
   };
 }
+
+export interface ReviewState {
+  ok: boolean;
+  message: string;
+  errors?: Record<string, string>;
+}
+
+const PROJECT_TYPES = ["สั่งซื้อแบบบ้าน", "ออกแบบเฉพาะ", "รับเหมาก่อสร้าง", "ตรวจบ้าน"];
+
+/** Public review submission — stored unpublished until an admin approves it in /admin/reviews. */
+export async function submitReview(_prev: ReviewState | null, fd: FormData): Promise<ReviewState> {
+  if (str(fd, "website")) return { ok: true, message: "ขอบคุณสำหรับรีวิว" };
+  const name = str(fd, "name", 80);
+  const body = str(fd, "body", 1500);
+  const rating = Number(fd.get("rating"));
+  const errors: Record<string, string> = {};
+  if (!name) errors.name = "กรุณากรอกชื่อ";
+  if (!body || body.length < 10) errors.body = "กรุณาเขียนรีวิวอย่างน้อย 10 ตัวอักษร";
+  if (!(rating >= 1 && rating <= 5)) errors.rating = "กรุณาให้คะแนน 1-5 ดาว";
+  if (Object.keys(errors).length) return { ok: false, message: "กรุณาตรวจสอบข้อมูลอีกครั้ง", errors };
+
+  const type = str(fd, "project_type", 40);
+  const planCode = str(fd, "plan_code", 40)?.toUpperCase() ?? null;
+  const sb = publicClient();
+  if (!sb) return { ok: false, message: "ระบบยังไม่ได้เชื่อมต่อฐานข้อมูล" };
+  const { error } = await sb.from("reviews").insert({
+    name,
+    body,
+    rating: Math.round(rating),
+    role: str(fd, "role", 120),
+    district: str(fd, "district", 80),
+    project_type: type && PROJECT_TYPES.includes(type) ? type : null,
+    plan_code: planCode && /^[A-Z0-9-]{3,30}$/.test(planCode) ? planCode : null,
+    is_published: false,
+  });
+  if (error) {
+    console.error("submitReview", error.message);
+    return { ok: false, message: "ส่งรีวิวไม่สำเร็จ กรุณาลองใหม่อีกครั้ง" };
+  }
+  return { ok: true, message: "ขอบคุณสำหรับรีวิว! ทีมงานจะตรวจสอบและเผยแพร่ภายใน 1-2 วันทำการ" };
+}

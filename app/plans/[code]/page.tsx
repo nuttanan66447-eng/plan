@@ -10,7 +10,9 @@ import { Panorama } from "@/components/Panorama";
 import { PlanCard } from "@/components/PlanCard";
 import { PlanViewer } from "@/components/PlanViewer";
 import { Tabs } from "@/components/Tabs";
-import { allPlanCodes, getPlan, listPlans, projectsForPlan } from "@/lib/data";
+import { RatingSummary, ReviewCards } from "@/components/ReviewList";
+import { ReviewForm } from "@/components/ReviewForm";
+import { allPlanCodes, getPlan, listPlans, listReviews, projectsForPlan } from "@/lib/data";
 import { baht, FEATURE_LABEL, num, STYLE_LABEL } from "@/lib/format";
 
 export const revalidate = 300;
@@ -41,7 +43,7 @@ export default async function PlanPage({ params }: { params: Promise<{ code: str
   const plan = await getPlan(decodeURIComponent(code));
   if (!plan) notFound();
 
-  const [built, similar] = await Promise.all([projectsForPlan(plan.code), listPlans({ style: plan.style })]);
+  const [built, similar, reviews] = await Promise.all([projectsForPlan(plan.code), listPlans({ style: plan.style }), listReviews(plan.code)]);
   const others = similar.plans.filter((p) => p.code !== plan.code).slice(0, 3);
   const save = plan.price_original ? Math.round((1 - plan.price / plan.price_original) * 100) : 0;
   const pages = (plan.pages_arch ?? 0) + (plan.pages_struct ?? 0) + (plan.pages_mep ?? 0);
@@ -245,6 +247,27 @@ export default async function PlanPage({ params }: { params: Promise<{ code: str
           </div>
         </section>
       )}
+
+      <section id="reviews" className="scroll-mt-28 border-t border-hairline bg-white py-12">
+        <div className="shell">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="eyebrow">Customer Reviews</p>
+              <h2 className="mt-2 text-[24px] font-bold">รีวิวจากลูกค้าที่ใช้แบบ {plan.code}</h2>
+            </div>
+            <RatingSummary reviews={reviews} />
+          </div>
+          {reviews.length ? <div className="mt-5"><ReviewCards reviews={reviews} /></div>
+            : <p className="mt-4 text-[13.5px] text-muted">ยังไม่มีรีวิวสำหรับแบบนี้ — เป็นคนแรกที่รีวิว</p>}
+          <details className="card group mt-6">
+            <summary className="flex cursor-pointer list-none items-center justify-between p-5 text-[15px] font-bold">
+              <span className="flex items-center gap-2"><Icon name="rate_review" className="text-bronze-dark" /> เขียนรีวิวแบบ {plan.code}</span>
+              <Icon name="expand_more" className="transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="border-t border-hairline p-5"><ReviewForm planCode={plan.code} /></div>
+          </details>
+        </div>
+      </section>
 
       {others.length > 0 && (
         <section className="pb-14 pt-4">

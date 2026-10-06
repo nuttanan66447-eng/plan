@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { baht, num } from "@/lib/format";
 import { Icon } from "./Icon";
@@ -7,11 +8,11 @@ import { Field, LeadForm } from "./LeadForm";
 
 const PROVINCES = ["กรุงเทพมหานคร และปริมณฑล", "ร้อยเอ็ด", "ขอนแก่น", "มหาสารคาม", "กาฬสินธุ์", "ยโสธร", "อุดรธานี", "นครราชสีมา", "เชียงใหม่", "ภูเก็ต", "จังหวัดอื่นๆ"];
 const STYLES = [
-  { key: "nordic", label: "Nordic Warmth", th: "นอร์ดิกอบอุ่น", rate: 15500 },
-  { key: "japandi", label: "Japandi Zen", th: "แจแปนดิ", rate: 15000 },
-  { key: "tropical", label: "Modern Tropical", th: "โมเดิร์นทรอปิคอล", rate: 17000 },
-  { key: "modern", label: "Contemporary", th: "คอนเทมโพรารี่", rate: 16000 },
-  { key: "minimal", label: "Minimal Box", th: "มินิมอล", rate: 13500 },
+  { key: "nordic", label: "Nordic Warmth", th: "นอร์ดิกอบอุ่น", rate: 15500, img: "/images/nordic-single.jpg", note: "หลังคาจั่วชัน กระจกสูง ผนังไม้โทนเข้ม" },
+  { key: "japandi", label: "Japandi Zen", th: "แจแปนดิ", rate: 15000, img: "/images/japandi-courtyard.jpg", note: "ไม้ธรรมชาติ คอร์ตยาร์ด สวนหินเซน" },
+  { key: "tropical", label: "Modern Tropical", th: "โมเดิร์นทรอปิคอล", rate: 17000, img: "/images/tropical-villa.jpg", note: "ชายคายื่นลึก ระแนงกันแดด สระว่ายน้ำ" },
+  { key: "modern", label: "Contemporary", th: "คอนเทมโพรารี่", rate: 16000, img: "/images/built-roiet-modern.jpg", note: "ทรงกล่องหลังคาแบน ผิวผนังขาวตัดไม้" },
+  { key: "minimal", label: "Minimal Box", th: "มินิมอล", rate: 13500, img: "/images/built-selaphum-courtyard.jpg", note: "เส้นสายเรียบง่าย ก่อสร้างไว คุมงบง่าย" },
 ];
 const PACKAGES = [
   { key: "standard", label: "Standard Plan", th: "แบบสำเร็จรูป + ปรับเล็กน้อย", min: 25000, perSqm: 0 },
@@ -107,12 +108,20 @@ export function DesignEstimator() {
             </div>
           )}
           {step === 1 && (
-            <div className="grid gap-3 animate-fade-up sm:grid-cols-2">
+            <div className="grid gap-3 animate-fade-up sm:grid-cols-2 xl:grid-cols-3">
               {STYLES.map((x) => (
-                <button key={x.key} type="button" onClick={() => setStyle(x.key)} className={`border p-4 text-left ${style === x.key ? "border-ink bg-ink text-white shadow-[3px_3px_0_0_#c59b27]" : "border-hairline bg-white hover:border-ink"}`}>
-                  <span className={`label-tech block ${style === x.key ? "text-bronze-light" : "text-bronze-dark"}`}>{x.label}</span>
-                  <span className="text-[15px] font-bold">{x.th}</span>
-                  <span className={`mt-1 block text-[12px] ${style === x.key ? "text-white/60" : "text-muted"}`}>ค่าก่อสร้างเฉลี่ย ~{num(x.rate)} บาท/ตร.ม.</span>
+                <button key={x.key} type="button" onClick={() => setStyle(x.key)} aria-pressed={style === x.key}
+                  className={`group overflow-hidden border text-left transition-shadow ${style === x.key ? "border-ink shadow-[3px_3px_0_0_#c59b27]" : "border-hairline bg-white hover:border-ink"}`}>
+                  <span className="relative block aspect-[16/9] overflow-hidden bg-wash-2">
+                    <Image src={x.img} alt={`ตัวอย่างบ้านสไตล์${x.th}`} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                    {style === x.key && <span className="absolute right-2 top-2 grid h-7 w-7 place-items-center bg-bronze text-ink"><Icon name="check" /></span>}
+                  </span>
+                  <span className={`block p-3.5 ${style === x.key ? "bg-ink text-white" : ""}`}>
+                    <span className={`label-tech block ${style === x.key ? "text-bronze-light" : "text-bronze-dark"}`}>{x.label}</span>
+                    <span className="text-[15px] font-bold">{x.th}</span>
+                    <span className={`mt-0.5 block text-[12px] ${style === x.key ? "text-white/70" : "text-muted"}`}>{x.note}</span>
+                    <span className={`mt-1 block text-[11.5px] ${style === x.key ? "text-white/50" : "text-subtle"}`}>ค่าก่อสร้างเฉลี่ย ~{num(x.rate)} บาท/ตร.ม.</span>
+                  </span>
                 </button>
               ))}
             </div>

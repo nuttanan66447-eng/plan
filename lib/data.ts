@@ -137,9 +137,11 @@ export async function projectsForPlan(code: string) {
   return (data ?? []) as Project[];
 }
 
-export async function listReviews() {
+export async function listReviews(planCode?: string) {
   const sb = publicClient();
   if (!sb) return [] as Review[];
-  const { data } = await sb.from("reviews").select("*").eq("is_published", true).order("sort_order");
+  let q = sb.from("reviews").select("*").eq("is_published", true);
+  if (planCode) q = q.eq("plan_code", planCode);
+  const { data } = await q.order("sort_order").order("created_at", { ascending: false });
   return (data ?? []) as Review[];
 }
