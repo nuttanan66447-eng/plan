@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 const PERMIT = [
-  ["รับเล่มแบบครบชุด", "รับเล่มพิมพ์เขียว 5 ชุด + ไฟล์รายการคำนวณจาก ArchiPlan (รับรองเซ็นสด)", "ระยะเวลา 1-3 วันทำการ"],
+  ["รับเล่มแบบครบชุด", "รับเล่มพิมพ์เขียว 5 ชุด + ไฟล์รายการคำนวณจาก NATBUILD (รับรองเซ็นสด)", "ระยะเวลา 1-3 วันทำการ"],
   ["เตรียมเอกสารบุคคล", "เตรียมสำเนาโฉนดที่ดิน บัตรประชาชน ทะเบียนบ้าน และหนังสือยินยอมผู้ถือกรรมสิทธิ์", "เจ้าของดำเนินการ"],
   ["ยื่นเรื่องที่ท้องถิ่น", "ยื่นขออนุญาตก่อสร้างที่กองช่าง อบต. หรือเทศบาล เจ้าหน้าที่ตรวจพื้นที่และแบบ", "ระยะเวลาพิจารณา 30-45 วัน"],
   ["รับใบ อ.1 ก่อสร้าง", "ได้รับใบอนุญาตก่อสร้าง (อ.1) เรียบร้อย พร้อมเริ่มดำเนินการเทฐานรากทันที", "ผ่านการอนุมัติ 100%"],
@@ -111,7 +111,7 @@ export default async function BoqPage({ searchParams }: { searchParams: Promise<
             </ol>
           </div>
           <div className="card p-6">
-            <h2 className="flex items-center gap-2 text-[20px] font-bold"><Icon name="shield" className="text-bronze-dark" />ทำไมต้องมี BOQ ArchiPlan ก่อนจ้างช่าง?</h2>
+            <h2 className="flex items-center gap-2 text-[20px] font-bold"><Icon name="shield" className="text-bronze-dark" />ทำไมต้องมี BOQ NATBUILD ก่อนจ้างช่าง?</h2>
             <p className="mt-2 text-[13.5px] text-muted">เจ้าของบ้านกว่า 80% ประสบปัญหางบบานปลายเพราะไม่มี “ราคากลางอ้างอิง” ที่เป็นมาตรฐาน</p>
             <ul className="mt-5 space-y-3">
               {[["ป้องกันปัญหางบบานปลาย (Budget Overrun)", "มีราคากลางวัสดุและค่าแรงที่ชัดเจน ลดการเพิ่มงานระหว่างก่อสร้าง"], ["ส่ง Blank BOQ ให้ผู้รับเหมาแข่งราคาอย่างโปร่งใส", "ผู้รับเหมาทุกรายเสนอราคาบนปริมาณเดียวกัน เปรียบเทียบได้ตรงตัว"], ["ใช้ตรวจรับงานงวดงานได้จริง", "แบ่งสัดส่วนงวดเงินตามปริมาณงานที่เสร็จจริง ไม่จ่ายเงินล่วงหน้าเกินงาน"], ["อนุมัติสินเชื่อกู้สร้างบ้านกับธนาคารได้ 100%", "รองรับเงื่อนไขธนาคาร ธอส. กสิกร ไทยพาณิชย์ กรุงไทย"]].map(([t, d], i) => (
@@ -138,7 +138,7 @@ export default async function BoqPage({ searchParams }: { searchParams: Promise<
           <div>
             <span className="bg-bronze px-2 py-1 text-[10.5px] font-bold tracking-[0.1em] text-ink">NO-SURPRISE CONSTRUCTION BUDGET</span>
             <h2 className="mt-4 text-[28px] font-bold leading-snug md:text-[34px]">มีที่ดินแล้ว หรือมีแบบแปลนที่ต้องการถอด BOQ และคำนวณโครงสร้างหรือไม่?</h2>
-            <p className="mt-3 text-white/65">ส่งไฟล์แบบสถาปัตยกรรมของคุณมาให้วิศวกร ArchiPlan ประเมินงานเบื้องต้นฟรี หรือดาวน์โหลดตัวอย่างไฟล์ Excel ไปใช้ประเมินราคาก่อสร้าง</p>
+            <p className="mt-3 text-white/65">ส่งไฟล์แบบสถาปัตยกรรมของคุณมาให้วิศวกร NATBUILD ประเมินงานเบื้องต้นฟรี หรือดาวน์โหลดตัวอย่างไฟล์ Excel ไปใช้ประเมินราคาก่อสร้าง</p>
             <div className="mt-6 border border-white/15 p-5">
               <p className="label-tech text-bronze-light">สายด่วนวิศวกร &amp; ให้คำปรึกษา</p>
               <a href={SITE.phoneHref} className="mt-1 block font-display text-[26px] font-bold">โทร. {SITE.phone}</a>

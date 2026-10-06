@@ -7,7 +7,7 @@ import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "เกี่ยวกับเรา",
-  description: "ArchiPlan Studio สตูดิโอสถาปัตยกรรมและวิศวกรรม BIM ผู้ให้บริการแบบบ้านพร้อมยื่นขออนุญาต ออกแบบเฉพาะ รับเหมาก่อสร้าง และตรวจบ้าน",
+  description: "NATBUILD สตูดิโอสถาปัตยกรรมและวิศวกรรม BIM ผู้ให้บริการแบบบ้านพร้อมยื่นขออนุญาต ออกแบบเฉพาะ รับเหมาก่อสร้าง และตรวจบ้าน",
 };
 
 export default function AboutPage() {
@@ -16,10 +16,10 @@ export default function AboutPage() {
       <section className="blueprint border-b border-hairline py-14">
         <div className="shell grid items-center gap-10 lg:grid-cols-2">
           <div>
-            <p className="eyebrow">About ArchiPlan Studio</p>
+            <p className="eyebrow">About NATBUILD</p>
             <h1 className="mt-3 text-[32px] font-bold leading-snug md:text-[44px]">สถาปัตยกรรมที่คำนวณได้จริง ก่อสร้างได้จริง</h1>
             <p className="mt-4 text-muted">
-              ArchiPlan Studio ก่อตั้งโดยทีมสถาปนิกและวิศวกรโครงสร้างที่เชื่อว่าบ้านที่ดีต้องเริ่มจากข้อมูลที่แม่นยำ เราใช้กระบวนการ BIM
+              NATBUILD ก่อตั้งโดยทีมสถาปนิกและวิศวกรโครงสร้างที่เชื่อว่าบ้านที่ดีต้องเริ่มจากข้อมูลที่แม่นยำ เราใช้กระบวนการ BIM
               (Building Information Modeling) ในทุกโครงการ ตั้งแต่แบบบ้านมาตรฐานในคลัง ไปจนถึงงานออกแบบเฉพาะและการควบคุมการก่อสร้าง
               เพื่อให้เจ้าของบ้านเห็นภาพ งบประมาณ และปริมาณวัสดุที่ชัดเจนก่อนลงเสาเข็มต้นแรก
             </p>
@@ -29,7 +29,7 @@ export default function AboutPage() {
               ))}
             </div>
           </div>
-          <div className="relative aspect-[4/3] border border-hairline"><Image src="/images/engineers-site.jpg" alt="ทีมสถาปนิกและวิศวกรของ ArchiPlan ที่หน้างาน" fill priority sizes="(max-width: 1024px) 100vw, 600px" className="object-cover" /></div>
+          <div className="relative aspect-[4/3] border border-hairline"><Image src="/images/engineers-site.jpg" alt="ทีมสถาปนิกและวิศวกรของ NATBUILD ที่หน้างาน" fill priority sizes="(max-width: 1024px) 100vw, 600px" className="object-cover" /></div>
         </div>
       </section>
 
@@ -54,7 +54,7 @@ export default function AboutPage() {
           <div id="license" className="scroll-mt-28">
             <h2 className="text-[22px] font-bold">ข้อกำหนดการใช้งานแบบแปลนและลิขสิทธิ์ BIM</h2>
             <div className="prose-th mt-4 text-[13.5px] text-muted">
-              <p>แบบแปลนทุกชุดเป็นลิขสิทธิ์ของ ArchiPlan Studio Co., Ltd. การสั่งซื้อ 1 ชุด อนุญาตให้ใช้ก่อสร้างอาคาร 1 หลัง บนที่ดินที่ระบุในการขออนุญาตเท่านั้น</p>
+              <p>แบบแปลนทุกชุดเป็นลิขสิทธิ์ของ NATBUILD Co., Ltd. การสั่งซื้อ 1 ชุด อนุญาตให้ใช้ก่อสร้างอาคาร 1 หลัง บนที่ดินที่ระบุในการขออนุญาตเท่านั้น</p>
               <p>ห้ามทำซ้ำ ดัดแปลงเพื่อจำหน่าย หรือเผยแพร่ไฟล์ BIM / CAD ต่อบุคคลที่สาม ยกเว้นผู้รับเหมาและวิศวกรที่เกี่ยวข้องกับโครงการ</p>
               <p>ภาพ 3D และภาพถ่ายผลงานในเว็บไซต์ใช้เพื่อการนำเสนอ วัสดุและสีจริงอาจแตกต่างตามการเลือกของเจ้าของบ้านและผู้รับเหมา</p>
             </div>

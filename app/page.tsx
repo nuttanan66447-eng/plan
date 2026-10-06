@@ -140,7 +140,7 @@ export default async function Home() {
         <div className="shell grid items-center gap-10 lg:grid-cols-2">
           <div>
             <p className="eyebrow">Smart BIM Accuracy</p>
-            <h2 className="mt-3 text-[28px] font-bold leading-snug md:text-[36px]">ทำไมแบบบ้าน ArchiPlan จึงประหยัดงบก่อสร้างได้จริง</h2>
+            <h2 className="mt-3 text-[28px] font-bold leading-snug md:text-[36px]">ทำไมแบบบ้าน NATBUILD จึงประหยัดงบก่อสร้างได้จริง</h2>
             <p className="mt-4 text-muted">
               เราใช้กระบวนการออกแบบด้วยระบบ BIM (Building Information Modeling) เพื่อตรวจสอบจุดขัดแย้งระหว่างงานโครงสร้างและงานระบบก่อนเริ่มสร้างจริง
               ลดการทุบรื้อแก้ไขหน้างาน ถอดปริมาณวัสดุได้แม่นยำ
@@ -213,7 +213,7 @@ export default async function Home() {
             <p className="eyebrow">Custom Architectural Service</p>
             <h2 className="mt-3 text-[28px] font-bold leading-snug md:text-[36px]">มีที่ดินเฉพาะ หรือต้องการออกแบบบ้านใหม่ตามฟังก์ชันของคุณ?</h2>
             <p className="mt-4 text-muted">
-              ทีมสถาปนิก ArchiPlan ให้บริการออกแบบบ้านเฉพาะบุคคล (Custom House Design) วางผังตามขนาดที่ดิน งบประมาณ และไลฟ์สไตล์ พร้อมพรีวิวโมเดล 3 มิติ
+              ทีมสถาปนิก NATBUILD ให้บริการออกแบบบ้านเฉพาะบุคคล (Custom House Design) วางผังตามขนาดที่ดิน งบประมาณ และไลฟ์สไตล์ พร้อมพรีวิวโมเดล 3 มิติ
               และทัวร์เสมือนจริงก่อนเริ่มเขียนแบบก่อสร้าง
             </p>
             <ul className="mt-6 space-y-2 text-[14px]">

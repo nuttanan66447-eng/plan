@@ -63,7 +63,7 @@ export function LeadForm({ type, hidden = {}, submitLabel, children, className =
             <input type="hidden" name="consent_required" value="1" />
             <label className={`mt-5 flex items-start gap-3 text-[12px] ${dark ? "text-white/70" : "text-muted"}`}>
               <input type="checkbox" name="consent" className="check mt-0.5" defaultChecked />
-              <span>ยินยอมให้ ArchiPlan Studio เก็บและใช้ข้อมูลเพื่อติดต่อกลับตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)</span>
+              <span>ยินยอมให้ NATBUILD เก็บและใช้ข้อมูลเพื่อติดต่อกลับตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล (PDPA)</span>
             </label>
             {errors?.consent && <p className="mt-1 text-[12px] text-danger">{errors.consent}</p>}
           </>

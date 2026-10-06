@@ -35,7 +35,7 @@ export default async function TurnkeyPage({ searchParams }: { searchParams: Prom
     <>
       <div className="border-b border-hairline bg-wash">
         <div className="shell flex flex-col justify-between gap-1 py-2.5 text-[11px] font-semibold tracking-[0.06em] text-muted md:flex-row">
-          <span className="flex items-center gap-2 text-ink"><span className="h-1.5 w-1.5 bg-bronze" />ARCHIPLAN NORTHEAST ENGINEERING DIVISION // ROI ET OPERATIONAL HUB</span>
+          <span className="flex items-center gap-2 text-ink"><span className="h-1.5 w-1.5 bg-bronze" />NATBUILD NORTHEAST ENGINEERING DIVISION // ROI ET OPERATIONAL HUB</span>
           <span>รหัสวิศวกรผู้ควบคุม: ภ-วฟ. 15420 • ใบอนุญาต สถ. / วศ. ครบถ้วน 100%</span>
         </div>
       </div>
@@ -201,7 +201,7 @@ export default async function TurnkeyPage({ searchParams }: { searchParams: Prom
               </ul>
             </div>
             <div className="border border-hairline bg-wash-2 p-5">
-              <p className="flex items-center gap-2 text-[14px] font-bold"><Icon name="policy" className="text-bronze-dark" />นโยบายมาตรฐานวิศวกรรม ArchiPlan</p>
+              <p className="flex items-center gap-2 text-[14px] font-bold"><Icon name="policy" className="text-bronze-dark" />นโยบายมาตรฐานวิศวกรรม NATBUILD</p>
               <p className="mt-2 text-[12.5px] text-muted">ทุกงานตรวจสอบและงานควบคุมการก่อสร้าง ดำเนินการโดยวิศวกรที่มีใบอนุญาตประกอบวิชาชีพวิศวกรรมควบคุม (กว.) ถูกต้องตามกฎหมาย มีประกันความรับผิดชอบวิชาชีพสูงสุด 1 ล้านบาท</p>
             </div>
           </div>

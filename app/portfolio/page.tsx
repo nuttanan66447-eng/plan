@@ -28,7 +28,7 @@ export default async function PortfolioPage({ searchParams }: { searchParams: Pr
     <>
       <section className="blueprint-dark py-14 text-white">
         <div className="shell">
-          <span className="chip border-white/20 bg-white/5 text-white"><span className="h-1.5 w-1.5 bg-bronze" />ARCHIPLAN FIELD RECORD // ROI ET &amp; ISAN REGION</span>
+          <span className="chip border-white/20 bg-white/5 text-white"><span className="h-1.5 w-1.5 bg-bronze" />NATBUILD FIELD RECORD // ROI ET &amp; ISAN REGION</span>
           <h1 className="mt-5 max-w-4xl text-[32px] font-bold leading-snug md:text-[46px]">
             ผลงานบ้านสร้างเสร็จจริง 100% <span className="text-bronze">ตรงตามแบบ 3D</span> และรีวิวจากเจ้าของบ้านใน จ.ร้อยเอ็ด
           </h1>
@@ -86,7 +86,7 @@ export default async function PortfolioPage({ searchParams }: { searchParams: Pr
       <section className="border-y border-hairline bg-white py-14">
         <div className="shell">
           <SectionHeading eyebrow="Portfolio Archive // ภาคสนามร้อยเอ็ด" title="โครงการก่อสร้างจริงล่าสุดในอำเภอต่างๆ"
-            desc="สร้างจริงโดย ArchiPlan Studio ทุกหลังผ่านการทดสอบคอนกรีตและการตรวจสอบความร้อนก่อนส่งมอบ"
+            desc="สร้างจริงโดย NATBUILD ทุกหลังผ่านการทดสอบคอนกรีตและการตรวจสอบความร้อนก่อนส่งมอบ"
             aside={
               <div className="flex flex-wrap gap-1.5">
                 <Link href="/portfolio" scroll={false} className={`chip ${!district ? "chip-active" : "hover:border-ink"}`}>ทั้งหมด</Link>
@@ -127,7 +127,7 @@ export default async function PortfolioPage({ searchParams }: { searchParams: Pr
       <section className="py-14">
         <div className="shell">
           <SectionHeading align="center" eyebrow="เสียงจริงจากผู้พักอาศัยจริงในจังหวัดร้อยเอ็ด" title="รีวิวความประทับใจจากเจ้าของบ้าน"
-            desc="ความสุขและความมั่นใจของลูกค้า คือตัวชี้วัดความสำเร็จในการควบคุมงานก่อสร้างของ ArchiPlan Studio" />
+            desc="ความสุขและความมั่นใจของลูกค้า คือตัวชี้วัดความสำเร็จในการควบคุมงานก่อสร้างของ NATBUILD" />
           {featured?.quote && (
             <div className="mt-8 grid overflow-hidden border border-ink bg-ink text-white md:grid-cols-[340px_1fr]">
               <div className="relative min-h-[280px]"><Image src="/images/happy-owners.jpg" alt="เจ้าของบ้านยืนหน้าบ้านที่สร้างเสร็จ" fill sizes="340px" className="object-cover" />
@@ -149,7 +149,7 @@ export default async function PortfolioPage({ searchParams }: { searchParams: Pr
           <div id="write-review" className="card mt-10 grid scroll-mt-28 gap-8 p-6 md:p-8 lg:grid-cols-[320px_1fr]">
             <div>
               <p className="eyebrow">Share Your Experience</p>
-              <h3 className="mt-2 text-[22px] font-bold">เคยใช้บริการ ArchiPlan? เขียนรีวิวให้เราหน่อย</h3>
+              <h3 className="mt-2 text-[22px] font-bold">เคยใช้บริการ NATBUILD? เขียนรีวิวให้เราหน่อย</h3>
               <p className="mt-2 text-[13.5px] text-muted">รีวิวของคุณช่วยให้ครอบครัวอื่นตัดสินใจสร้างบ้านได้ง่ายขึ้น และช่วยให้เราพัฒนาบริการให้ดียิ่งขึ้น</p>
             </div>
             <ReviewForm plans={planCodes} />

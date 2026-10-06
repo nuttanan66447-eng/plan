@@ -13,8 +13,8 @@ const thai = IBM_Plex_Sans_Thai({ subsets: ["thai", "latin"], weight: ["300", "4
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
-    default: "ArchiPlan Studio — แบบบ้าน 3D พร้อมยื่นขออนุญาตก่อสร้าง",
-    template: "%s | ArchiPlan Studio",
+    default: "NATBUILD — แบบบ้าน 3D พร้อมยื่นขออนุญาตก่อสร้าง",
+    template: "%s | NATBUILD",
   },
   description:
     "คลังแบบบ้านโมเดิร์น นอร์ดิก แจแปนดิ ทรอปิคอล พร้อมไฟล์ 3D BIM, เล่ม BOQ และรายการคำนวณวิศวกรรม ยื่นขออนุญาตก่อสร้างได้ทันที บริการออกแบบ รับเหมา และตรวจบ้านโดยวิศวกร",

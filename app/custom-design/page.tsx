@@ -97,7 +97,7 @@ export default function CustomDesignPage() {
         <div className="shell flex flex-col gap-3 py-5 md:flex-row md:items-center">
           <span className="grid h-12 w-12 shrink-0 place-items-center bg-ink text-bronze"><Icon name="shield" className="text-[26px]" /></span>
           <p className="flex-1"><b className="text-[16px]">การันตีใบอนุญาตก่อสร้าง (อ.1) ผ่านแน่นอน 100%</b> <span className="ml-1 bg-bronze px-1.5 text-[10px] font-bold text-ink">WARRANTY</span><br />
-            <span className="text-[13px] text-muted">หากแบบของ ArchiPlan Studio ไม่ผ่านการพิจารณาจากหน่วยงานท้องถิ่น ทีมงานยินดีแก้ไขและยื่นใหม่จนผ่าน โดยไม่มีค่าใช้จ่ายเพิ่มเติม</span></p>
+            <span className="text-[13px] text-muted">หากแบบของ NATBUILD ไม่ผ่านการพิจารณาจากหน่วยงานท้องถิ่น ทีมงานยินดีแก้ไขและยื่นใหม่จนผ่าน โดยไม่มีค่าใช้จ่ายเพิ่มเติม</span></p>
         </div>
       </div>
 

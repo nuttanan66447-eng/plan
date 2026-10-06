@@ -47,7 +47,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
       <section className="border-b border-hairline bg-wash">
         <div className="shell py-6">
           <div className="flex flex-col justify-between gap-2 text-[11px] font-semibold tracking-[0.1em] text-muted md:flex-row">
-            <p>ARCHIPLAN HUB / <span className="text-ink">3D BIM REPOSITORY &amp; PERMIT-READY DESIGNS</span></p>
+            <p>NATBUILD / <span className="text-ink">3D BIM REPOSITORY &amp; PERMIT-READY DESIGNS</span></p>
             <p className="flex gap-5">
               <span className="flex items-center gap-1.5"><span className="h-2 w-2 bg-bronze" />BIM MODEL IFC / DWG READY</span>
               <span className="flex items-center gap-1.5"><Icon name="verified" className="text-bronze" />วิศวกรเซ็นรับรองแบบ 100%</span>

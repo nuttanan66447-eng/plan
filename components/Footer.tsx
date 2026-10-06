@@ -56,7 +56,7 @@ export function Footer() {
       </div>
       <div className="border-t border-hairline">
         <div className="shell flex flex-col gap-3 py-5 text-[11px] text-subtle md:flex-row md:items-center md:justify-between">
-          <p>© {new Date().getFullYear()} ArchiPlan Studio Co., Ltd. สงวนลิขสิทธิ์ทุกประการ</p>
+          <p>© {new Date().getFullYear()} NATBUILD Co., Ltd. สงวนลิขสิทธิ์ทุกประการ</p>
           <div className="flex flex-wrap gap-x-5 gap-y-1">
             <Link href="/about#privacy" className="hover:text-ink">นโยบายความเป็นส่วนตัว</Link>
             <Link href="/about#license" className="hover:text-ink">ข้อกำหนดการใช้งานแบบแปลนและ BIM ลิขสิทธิ์</Link>

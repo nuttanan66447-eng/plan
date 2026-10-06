@@ -55,7 +55,7 @@ export default async function PlanPage({ params }: { params: Promise<{ code: str
     description: plan.description,
     image: plan.image,
     sku: plan.code,
-    brand: { "@type": "Brand", name: "ArchiPlan Studio" },
+    brand: { "@type": "Brand", name: "NATBUILD" },
     offers: { "@type": "Offer", priceCurrency: "THB", price: plan.price, availability: "https://schema.org/InStock" },
   };
 
@@ -65,7 +65,7 @@ export default async function PlanPage({ params }: { params: Promise<{ code: str
       <div className="border-b border-hairline bg-wash">
         <div className="shell flex flex-col justify-between gap-2 py-3 text-[11.5px] font-semibold tracking-[0.06em] md:flex-row md:items-center">
           <nav aria-label="breadcrumb" className="text-muted">
-            <Link href="/" className="hover:text-ink">ARCHIPLAN HUB</Link> / <Link href="/plans" className="hover:text-ink">คลังแบบบ้าน 3D</Link> / <span className="text-bronze-dark">{plan.code}</span>
+            <Link href="/" className="hover:text-ink">NATBUILD</Link> / <Link href="/plans" className="hover:text-ink">คลังแบบบ้าน 3D</Link> / <span className="text-bronze-dark">{plan.code}</span>
           </nav>
           <div className="flex flex-wrap gap-2">
             <span className="chip chip-dot bg-white">BIM LEVEL OF DETAIL: LOD 350</span>
@@ -181,7 +181,7 @@ export default async function PlanPage({ params }: { params: Promise<{ code: str
                 </div>) },
               { label: "ขั้นตอนการยื่นขออนุญาตก่อสร้าง", content: (
                 <ol className="grid gap-4 md:grid-cols-4">
-                  {[["รับเล่มแบบครบชุด", "เล่มพิมพ์เขียว 5 ชุด + เอกสารวิศวกร-สถาปนิก"], ["เตรียมเอกสารบุคคล", "โฉนด สำเนาบัตรประชาชน ทะเบียนบ้าน"], ["ยื่นเรื่องที่ อบต./เทศบาล", "เจ้าหน้าที่ตรวจแบบและพื้นที่ภายใน 45 วัน"], ["รับใบ อ.1 ก่อสร้าง", "เริ่มก่อสร้างได้ทันที • ArchiPlan แก้ไขแบบฟรีหากถูกตีกลับ"]].map(([t, d], i) => (
+                  {[["รับเล่มแบบครบชุด", "เล่มพิมพ์เขียว 5 ชุด + เอกสารวิศวกร-สถาปนิก"], ["เตรียมเอกสารบุคคล", "โฉนด สำเนาบัตรประชาชน ทะเบียนบ้าน"], ["ยื่นเรื่องที่ อบต./เทศบาล", "เจ้าหน้าที่ตรวจแบบและพื้นที่ภายใน 45 วัน"], ["รับใบ อ.1 ก่อสร้าง", "เริ่มก่อสร้างได้ทันที • NATBUILD แก้ไขแบบฟรีหากถูกตีกลับ"]].map(([t, d], i) => (
                     <li key={t} className="border border-hairline p-4"><span className="font-display text-[26px] font-bold text-bronze">{String(i + 1).padStart(2, "0")}</span><b className="mt-1 block text-[14px]">{t}</b><span className="text-[12.5px] text-muted">{d}</span></li>
                   ))}
                 </ol>) },
