@@ -71,7 +71,7 @@ export default function AboutPage() {
 
       <section className="py-14">
         <div className="shell grid gap-6 md:grid-cols-2">
-          {[["สำนักงานใหญ่ กรุงเทพฯ", SITE.address, SITE.phone, SITE.phoneHref], ["ศูนย์ปฏิบัติการภาคอีสาน ร้อยเอ็ด", SITE.roiEtAddress, SITE.roiEtPhone, `tel:${SITE.roiEtPhone.replace(/-/g, "")}`]].map(([t, a, p, h]) => (
+          {[["สำนักงาน NATBUILD ร้อยเอ็ด", SITE.address, SITE.phone, SITE.phoneHref], ["วิศวกรผู้ควบคุมงาน", `${SITE.engineer} — วิศวกรโยธา ใบอนุญาต ${SITE.license}`, SITE.email, `mailto:${SITE.email}`]].map(([t, a, p, h]) => (
             <div key={t} className="card p-6">
               <p className="eyebrow">Office</p>
               <h3 className="mt-2 text-[19px] font-bold">{t}</h3>

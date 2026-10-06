@@ -4,6 +4,7 @@ import { DesignEstimator } from "@/components/DesignEstimator";
 import { Icon } from "@/components/Icon";
 import { Field, LeadForm } from "@/components/LeadForm";
 import { SectionHeading } from "@/components/SectionHeading";
+import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "รับออกแบบบ้านและเขียนแบบก่อสร้างเฉพาะบุคคล",
@@ -26,7 +27,7 @@ export default function CustomDesignPage() {
       <div className="border-b border-hairline bg-wash">
         <div className="shell flex flex-col justify-between gap-1 py-2.5 text-[11px] font-semibold tracking-[0.06em] text-muted md:flex-row">
           <span>PROJECT CODE: <span className="text-ink">ARC-CUSTOM-SPEC-{new Date().getFullYear()}</span> • RESIDENTIAL CAD &amp; BIM ENGINEERING</span>
-          <span className="flex items-center gap-1.5"><Icon name="verified" className="text-bronze" /> ใบอนุญาตประกอบวิชาชีพสถาปัตยกรรมควบคุม ภ-สถ. 5241/65</span>
+          <span className="flex items-center gap-1.5"><Icon name="verified" className="text-bronze" /> ใบอนุญาตประกอบวิชาชีพวิศวกรรมควบคุม {SITE.license}</span>
         </div>
       </div>
 
@@ -109,14 +110,14 @@ export default function CustomDesignPage() {
               <Image src="/images/architect-portrait.jpg" alt="คุณพิมพ์ชนก สุวรรณวงศ์ สถาปนิกผู้อำนวยการ" fill sizes="380px" className="object-cover" />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/90 p-4 text-white">
                 <p className="label-tech text-bronze-light">Chief of Residential Design</p>
-                <p className="text-[17px] font-bold">คุณพิมพ์ชนก สุวรรณวงศ์ (วส. 1420)</p>
+                <p className="text-[17px] font-bold">ทีมออกแบบ &amp; วิศวกรรม NATBUILD</p>
                 <p className="text-[11.5px] text-white/70">ผู้อำนวยการฝ่ายออกแบบสถาปัตยกรรม BIM 3D Architecture</p>
               </div>
             </div>
             <p className="mt-4 text-[13px] italic text-muted">“การออกแบบบ้านที่ดีไม่ได้มีแค่ความสวยงามภายนอก แต่ต้องสร้างสมดุลระหว่างงบประมาณ ความปลอดภัยของโครงสร้าง และคุณภาพชีวิตของผู้อยู่อาศัยตลอดระยะเวลาหลายสิบปี”</p>
             <ul className="mt-4 space-y-1 bg-wash p-3 text-[12px]">
               <li>• สถาปัตยกรรมศาสตรบัณฑิต จุฬาลงกรณ์มหาวิทยาลัย</li>
-              <li>• สถาปนิกผู้ถือใบอนุญาตระดับวุฒิ (วส. 1420)</li>
+              <li>• ควบคุมงานโดย {SITE.engineer} วิศวกรโยธา ({SITE.license})</li>
               <li>• Autodesk Certified Professional: Revit Architecture BIM</li>
             </ul>
           </div>

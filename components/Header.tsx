@@ -40,7 +40,7 @@ export function Header() {
           </p>
           <div className="hidden items-center gap-6 text-white/70 md:flex">
             <span className="flex items-center gap-1.5">
-              <Icon name="verified" className="text-bronze" /> สภาสถาปนิก เลขที่ใบอนุญาต {SITE.license}
+              <Icon name="verified" className="text-bronze" /> วิศวกรโยธา ใบอนุญาต {SITE.license}
             </span>
             <a href={SITE.phoneHref} className="flex items-center gap-1.5 hover:text-white">
               <Icon name="call" className="text-bronze" /> HOTLINE: {SITE.phone}

@@ -36,7 +36,7 @@ export default async function TurnkeyPage({ searchParams }: { searchParams: Prom
       <div className="border-b border-hairline bg-wash">
         <div className="shell flex flex-col justify-between gap-1 py-2.5 text-[11px] font-semibold tracking-[0.06em] text-muted md:flex-row">
           <span className="flex items-center gap-2 text-ink"><span className="h-1.5 w-1.5 bg-bronze" />NATBUILD NORTHEAST ENGINEERING DIVISION // ROI ET OPERATIONAL HUB</span>
-          <span>รหัสวิศวกรผู้ควบคุม: ภ-วฟ. 15420 • ใบอนุญาต สถ. / วศ. ครบถ้วน 100%</span>
+          <span>วิศวกรผู้ควบคุม: {SITE.engineer} • วิศวกรโยธา {SITE.license}</span>
         </div>
       </div>
 
@@ -195,8 +195,8 @@ export default async function TurnkeyPage({ searchParams }: { searchParams: Prom
               <h3 className="mt-1 text-[19px] font-bold">ติดต่อด่วนกับวิศวกรผู้ดูแลประจำศูนย์ร้อยเอ็ด</h3>
               <p className="mt-1 text-[12.5px] text-muted">ต้องการปรึกษาด่วนเรื่องรอยร้าว ดินทรุด หรือต้องการให้วิศวกรประเมินราคาหน้างาน</p>
               <ul className="mt-4 space-y-3 text-[13px]">
-                <li className="flex gap-3"><Icon name="engineering" className="text-bronze-dark" /><span>สายตรงวิศวกรควบคุม (คุณวรวิทย์ วศ.)<b className="block">{SITE.mobile}</b></span></li>
-                <li className="flex gap-3"><Icon name="call" className="text-bronze-dark" /><span>ศูนย์บริการลูกค้าสำนักงานใหญ่<b className="block">{SITE.roiEtPhone} (ร้อยเอ็ด)</b></span></li>
+                <li className="flex gap-3"><Icon name="engineering" className="text-bronze-dark" /><span>สายตรงวิศวกรผู้ควบคุม (คุณ{SITE.engineer.split(" ")[0]})<a href={SITE.phoneHref} className="block font-bold hover:text-bronze-dark">{SITE.phone}</a></span></li>
+                <li className="flex gap-3"><Icon name="mail" className="text-bronze-dark" /><span>อีเมล<a href={`mailto:${SITE.email}`} className="block font-bold hover:text-bronze-dark">{SITE.email}</a></span></li>
                 <li className="flex gap-3"><Icon name="chat" className="text-bronze-dark" /><span>LINE Official ส่งรูปหน้างาน<a href={SITE.lineHref} className="block font-bold text-bronze-dark hover:underline">{SITE.line}</a></span></li>
               </ul>
             </div>

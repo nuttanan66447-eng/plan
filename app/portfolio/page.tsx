@@ -178,7 +178,7 @@ export default async function PortfolioPage({ searchParams }: { searchParams: Pr
               <p className="mt-2 text-[14px] text-ink/75">รับคำปรึกษาฟรีเรื่องการวางทิศทางแดดลม การประเมินงบประมาณก่อสร้างเบื้องต้น พร้อมตรวจสอบเงื่อนไขการขออนุญาตก่อสร้างกับเทศบาลหรือ อบต.</p>
             </div>
             <div className="flex flex-col gap-2">
-              <a href={`tel:${SITE.roiEtPhone.replace(/-/g, "")}`} className="btn btn-primary"><Icon name="call" /> โทรคุยกับสถาปนิก {SITE.roiEtPhone}</a>
+              <a href={SITE.phoneHref} className="btn btn-primary"><Icon name="call" /> โทรคุยกับทีมงาน {SITE.phone}</a>
               <Link href="/turnkey#request" className="btn btn-outline">ขอประเมินราคาสร้างบ้าน</Link>
             </div>
           </div>

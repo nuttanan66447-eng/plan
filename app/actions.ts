@@ -2,6 +2,7 @@
 
 import { publicClient } from "@/lib/supabase/public";
 import type { LeadType } from "@/lib/types";
+import { SITE } from "@/lib/site";
 
 export interface LeadState {
   ok: boolean;
@@ -50,7 +51,7 @@ export async function submitLead(_prev: LeadState | null, fd: FormData): Promise
   }
 
   const sb = publicClient();
-  if (!sb) return { ok: false, message: "ระบบยังไม่ได้เชื่อมต่อฐานข้อมูล กรุณาโทร 02-892-4114" };
+  if (!sb) return { ok: false, message: `ระบบยังไม่ได้เชื่อมต่อฐานข้อมูล กรุณาโทร ${SITE.phone}` };
 
   const { error } = await sb.from("leads").insert({
     type,
@@ -75,7 +76,7 @@ export async function submitLead(_prev: LeadState | null, fd: FormData): Promise
 
   if (error) {
     console.error("submitLead", error.message);
-    return { ok: false, message: "ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง หรือโทร 02-892-4114" };
+    return { ok: false, message: `ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง หรือโทร ${SITE.phone}` };
   }
   return {
     ok: true,

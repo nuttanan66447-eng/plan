@@ -63,7 +63,7 @@ export default async function BoqPage({ searchParams }: { searchParams: Promise<
                 <span className="bg-bronze px-2 py-0.5 text-[10px] font-bold text-ink">READY TO PERMIT</span>
               </div>
               <dl className="mt-3 space-y-2 text-[13px]">
-                {[["รหัสโมเดลอ้างอิง", plan.code], ["พื้นที่ใช้สอยรวม", `${num(plan.area_sqm)} ตารางเมตร`], ["ประเภทอาคาร", `ค.ส.ล. ${plan.storeys} ชั้น (พักอาศัย)`], ["งบประมาณประเมิน BOQ", baht(plan.build_cost_max * 1e6 * 0.86)], ["วิศวกรผู้คำนวณ", "วุฒิวิศวกรโยธา (วศ. 4182)"]].map(([k, v]) => (
+                {[["รหัสโมเดลอ้างอิง", plan.code], ["พื้นที่ใช้สอยรวม", `${num(plan.area_sqm)} ตารางเมตร`], ["ประเภทอาคาร", `ค.ส.ล. ${plan.storeys} ชั้น (พักอาศัย)`], ["งบประมาณประเมิน BOQ", baht(plan.build_cost_max * 1e6 * 0.86)], ["วิศวกรผู้คำนวณ", `${SITE.engineer} (${SITE.license})`]].map(([k, v]) => (
                   <div key={k} className="flex justify-between gap-3"><dt className="text-muted">{k}</dt><dd className="text-right font-semibold">{v}</dd></div>
                 ))}
               </dl>

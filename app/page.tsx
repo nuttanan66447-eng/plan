@@ -6,6 +6,7 @@ import { QuickEstimator } from "@/components/QuickEstimator";
 import { SectionHeading } from "@/components/SectionHeading";
 import { featuredPlans, getPlan, planStats } from "@/lib/data";
 import { baht, num } from "@/lib/format";
+import { SITE } from "@/lib/site";
 
 export const revalidate = 300;
 
@@ -199,7 +200,7 @@ export default async function Home() {
             ))}
           </div>
           <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3 border-t border-white/10 pt-6 text-[12px] text-white/70">
-            {[["verified", "สภาสถาปนิก (Architect Council of Thailand)"], ["engineering", "สภาวิศวกร (Council of Engineers)"], ["thumb_up", "คะแนนความพึงพอใจลูกค้า 4.9/5 (รีวิว 380+ รายการ)"], ["gavel", "ถูกต้องตาม พ.ร.บ. ควบคุมอาคาร 2522"]].map(([i, t]) => (
+            {[["verified", `ควบคุมงานโดยวิศวกรโยธา ${SITE.engineer} (${SITE.license})`], ["engineering", "สภาวิศวกร (Council of Engineers)"], ["thumb_up", "คะแนนความพึงพอใจลูกค้า 4.9/5 (รีวิว 380+ รายการ)"], ["gavel", "ถูกต้องตาม พ.ร.บ. ควบคุมอาคาร 2522"]].map(([i, t]) => (
               <span key={t} className="flex items-center gap-2"><Icon name={i} className="text-bronze" />{t}</span>
             ))}
           </div>

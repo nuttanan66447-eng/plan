@@ -22,7 +22,7 @@ export function Footer() {
             ละเอียด และเอกสารวิศวกรรมรับรองพร้อมยื่นเทศบาล
           </p>
           <p className="mt-5 flex items-center gap-2 text-[11px] font-semibold text-ink-3">
-            <span className="h-2 w-2 bg-bronze" /> จดทะเบียนนิติบุคคลวิชาชีพสถาปัตยกรรมควบคุม
+            <span className="h-2 w-2 bg-bronze" /> ควบคุมงานโดยวิศวกรโยธา {SITE.license}
           </p>
         </div>
         <div>
@@ -42,14 +42,15 @@ export function Footer() {
             </span>
             <span className="mt-2 flex items-center gap-1.5 text-[12px] font-semibold"><Icon name="download" /> ตัวอย่างเล่มแบบ BOQ ออนไลน์</span>
           </Link>
-          <p className="mt-4 text-[11px] text-subtle">รับรองโครงสร้างโดย วุฒิวิศวกร (วศ.) และ สามัญสถาปนิก (สถ.)</p>
+          <p className="mt-4 text-[11px] text-subtle">ควบคุมงานโดย {SITE.engineer} วิศวกรโยธา ({SITE.license})</p>
         </div>
         <div>
-          <h3 className="text-[15px] font-bold">สำนักงาน &amp; ฝ่ายบริการลูกค้า</h3>
+          <h3 className="text-[15px] font-bold">ติดต่อ NATBUILD</h3>
           <p className="mt-4 text-[13px] leading-6 text-muted">{SITE.address}</p>
           <ul className="mt-4 space-y-2 text-[13px]">
-            <li><a href={SITE.phoneHref} className="flex items-center gap-2 hover:text-bronze-dark"><Icon name="call" className="text-bronze" />{SITE.phone}, {SITE.mobile}</a></li>
+            <li><a href={SITE.phoneHref} className="flex items-center gap-2 hover:text-bronze-dark"><Icon name="call" className="text-bronze" />{SITE.phone}</a></li>
             <li><a href={`mailto:${SITE.email}`} className="flex items-center gap-2 hover:text-bronze-dark"><Icon name="mail" className="text-bronze" />{SITE.email}</a></li>
+            <li><a href={SITE.lineHref} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-bronze-dark"><Icon name="chat" className="text-bronze" />LINE {SITE.line}</a></li>
             <li className="flex items-center gap-2"><Icon name="schedule" className="text-bronze" />{SITE.hours}</li>
           </ul>
         </div>
