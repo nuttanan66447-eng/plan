@@ -12,8 +12,12 @@ export function Header() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    setOpen(false);
+    setSearchOpen(false);
+  }, [pathname]);
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
   }, [open]);
@@ -45,11 +49,11 @@ export function Header() {
         </div>
       </div>
 
-      <div className="border-b border-hairline bg-white/95 backdrop-blur-md">
+      <div className="relative border-b border-hairline bg-white/95 backdrop-blur-md">
         <div className="shell flex h-[72px] items-center gap-6">
           <Logo />
-          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 xl:flex" aria-label="เมนูหลัก">
-            {NAV.map((n) => (
+          <nav className="ml-auto hidden items-center gap-0.5 xl:flex" aria-label="เมนูหลัก">
+            {NAV.filter((n) => n.href !== "/").map((n) => (
               <Link
                 key={n.href}
                 href={n.href}
@@ -62,17 +66,16 @@ export function Header() {
               </Link>
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-3 xl:ml-0">
-            <form onSubmit={search} className="hidden items-center border border-hairline bg-wash 2xl:flex" role="search">
-              <Icon name="search" className="ml-3 text-muted" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="ค้นหารหัสแบบ เช่น AP-NORDIC"
-                aria-label="ค้นหาแบบบ้าน"
-                className="w-48 bg-transparent px-2 py-2 text-[13px] outline-none"
-              />
-            </form>
+          <div className="ml-auto flex shrink-0 items-center gap-2 xl:ml-2">
+            <button
+              type="button"
+              onClick={() => setSearchOpen((v) => !v)}
+              aria-expanded={searchOpen}
+              aria-label="ค้นหาแบบบ้าน"
+              className={`hidden h-10 w-10 place-items-center border xl:grid ${searchOpen ? "border-ink bg-ink text-white" : "border-hairline hover:border-ink"}`}
+            >
+              <Icon name={searchOpen ? "close" : "search"} className="text-[20px]" />
+            </button>
             <Link href="/custom-design#booking" className="btn btn-bronze btn-sm hidden sm:inline-flex">
               ปรึกษาสถาปนิกฟรี
             </Link>
@@ -86,6 +89,22 @@ export function Header() {
             </button>
           </div>
         </div>
+        {searchOpen && (
+          <div className="absolute inset-x-0 top-full hidden border-b border-hairline bg-white shadow-[0_4px_0_0_rgba(30,35,42,.06)] xl:block">
+            <form onSubmit={search} className="shell flex items-center gap-3 py-3" role="search">
+              <Icon name="search" className="text-[20px] text-muted" />
+              <input
+                autoFocus
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="ค้นหารหัสแบบ ชื่อแบบ หรือสไตล์ เช่น AP-NORDIC, มินิมอล, 2 ชั้น"
+                aria-label="ค้นหาแบบบ้าน"
+                className="flex-1 bg-transparent py-2 text-[15px] outline-none"
+              />
+              <button className="btn btn-primary btn-sm">ค้นหาแบบ</button>
+            </form>
+          </div>
+        )}
       </div>
 
       {open && (

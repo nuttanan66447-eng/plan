@@ -1,9 +1,9 @@
 import type { Plan } from "@/lib/types";
 
-interface Room { x: number; y: number; w: number; h: number; label: string; sub?: string; accent?: boolean }
+export interface Room { x: number; y: number; w: number; h: number; label: string; sub?: string; accent?: boolean }
 
 // Schematic (not-to-scale) floor plan generated from a plan's programme, used for the 2D preview tab.
-function layout(plan: Plan, floor: number): Room[] {
+export function roomLayout(plan: Plan, floor: number): Room[] {
   const beds = plan.bedrooms;
   const two = plan.storeys > 1;
   if (!two || floor === 0) {
@@ -32,7 +32,7 @@ function layout(plan: Plan, floor: number): Room[] {
 export function FloorPlan({ plan, floor }: { plan: Plan; floor: number }) {
   const W = 760, H = 470, P = 40;
   const sx = (W - P * 2) / 100, sy = (H - P * 2) / 100;
-  const rooms = layout(plan, floor);
+  const rooms = roomLayout(plan, floor);
   const area = plan.floor_areas[floor] ?? plan.area_sqm;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" role="img" aria-label={`แปลนพื้นชั้น ${floor + 1} ของ ${plan.code}`}>

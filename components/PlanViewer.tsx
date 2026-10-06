@@ -1,13 +1,24 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useState } from "react";
 import type { Plan } from "@/lib/types";
 import { FloorPlan, SunPath } from "./FloorPlan";
 import { Icon } from "./Icon";
 
+const Model3D = dynamic(() => import("./Model3D"), {
+  ssr: false,
+  loading: () => (
+    <div className="blueprint grid h-full place-items-center text-[13px] text-muted">
+      <span className="flex items-center gap-2"><Icon name="progress_activity" className="animate-spin text-bronze-dark" /> กำลังโหลดโมเดล 3 มิติ...</span>
+    </div>
+  ),
+});
+
 const TABS = [
-  { key: "exterior", label: "ภายนอก EXTERIOR", icon: "view_in_ar" },
+  { key: "model", label: "โมเดล 3D หมุนได้", icon: "3d_rotation" },
+  { key: "exterior", label: "ภาพจริง EXTERIOR", icon: "photo_library" },
   { key: "section", label: "ตัดขวาง SECTION 3D", icon: "splitscreen" },
   { key: "plan", label: "แปลน 2D FLOORPLAN", icon: "architecture" },
   { key: "sun", label: "ทิศแดด-ลม (SUN PATH)", icon: "light_mode" },
@@ -20,12 +31,13 @@ const HOTSPOTS = [
 ];
 
 export function PlanViewer({ plan }: { plan: Plan }) {
-  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("exterior");
+  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("model");
   const [img, setImg] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [floor, setFloor] = useState(0);
   const [spot, setSpot] = useState<number | null>(null);
-  const exterior = plan.gallery.length ? plan.gallery : [plan.image];
+  const photos = plan.gallery.filter((g) => g !== plan.panorama);
+  const exterior = photos.length ? photos : [plan.image];
   const sectionImg = plan.gallery.find((g) => g.includes("section")) ?? "/images/section-cutaway.jpg";
 
   return (
@@ -43,6 +55,7 @@ export function PlanViewer({ plan }: { plan: Plan }) {
       </div>
 
       <div className="relative aspect-[16/10] overflow-hidden bg-wash-2">
+        {tab === "model" && <Model3D plan={plan} />}
         {tab === "exterior" && (
           <>
             <div className="absolute inset-0 transition-transform duration-300" style={{ transform: `scale(${zoom})` }}>
@@ -72,7 +85,7 @@ export function PlanViewer({ plan }: { plan: Plan }) {
         {tab === "plan" && <div className="absolute inset-0 transition-transform duration-300" style={{ transform: `scale(${zoom})` }}><FloorPlan plan={plan} floor={floor} /></div>}
         {tab === "sun" && <div className="absolute inset-0"><SunPath plan={plan} /></div>}
 
-        <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-ink/90 p-1 text-[11.5px] text-white">
+        {tab !== "model" && <div className="absolute bottom-3 left-3 flex items-center gap-1 bg-ink/90 p-1 text-[11.5px] text-white">
           {tab === "plan" ? (
             <>
               <span className="px-2 text-white/60">ระดับชั้น:</span>
@@ -90,13 +103,13 @@ export function PlanViewer({ plan }: { plan: Plan }) {
           ) : (
             <span className="px-2 text-white/70">{plan.code} • LOD 350</span>
           )}
-        </div>
-        {tab !== "sun" && (
+        </div>}
+        {tab !== "sun" && tab !== "model" && (
           <div className="absolute bottom-3 right-3 flex bg-ink/90 text-white">
             <button onClick={() => setZoom((z) => Math.min(2, z + 0.25))} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ซูมเข้า"><Icon name="zoom_in" /></button>
             <button onClick={() => setZoom((z) => Math.max(1, z - 0.25))} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ซูมออก"><Icon name="zoom_out" /></button>
             {tab === "exterior" && exterior.length > 1 && (
-              <button onClick={() => { setImg((i) => (i + 1) % exterior.length); setSpot(null); }} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="เปลี่ยนมุมมอง"><Icon name="3d_rotation" /></button>
+              <button onClick={() => { setImg((i) => (i + 1) % exterior.length); setSpot(null); }} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ภาพถัดไป"><Icon name="navigate_next" /></button>
             )}
             <button onClick={() => { setZoom(1); setImg(0); setSpot(null); }} className="grid h-9 w-9 place-items-center text-bronze hover:bg-white/10" aria-label="รีเซ็ตมุมมอง"><Icon name="restart_alt" /></button>
           </div>

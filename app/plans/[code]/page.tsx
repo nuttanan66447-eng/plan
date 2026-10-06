@@ -81,7 +81,7 @@ export default async function PlanPage({ params }: { params: Promise<{ code: str
               <p className="text-[12px] font-semibold text-bronze-dark">เล่มแบบ {pages} แผ่น (PDF)</p>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-              {[...plan.gallery.slice(0, 2).map((g, i) => ({ img: g, label: i ? "02 ผังตัดไอโซเมตริก" : "01 ทัศนียภาพค่ำ", icon: "visibility" })),
+              {[...plan.gallery.filter((g) => g !== plan.panorama).slice(0, 2).map((g, i) => ({ img: g, label: i ? "02 ผังตัดไอโซเมตริก" : "01 ทัศนียภาพค่ำ", icon: "visibility" })),
                 { img: null, label: "03 ผังฐานราก-คานคอดิน", icon: "foundation", tag: "S-01" },
                 { img: null, label: "04 ระบบไฟฟ้า-สุขาภิบาล", icon: "electrical_services", tag: "EE-04" }].map((t) => (
                 <div key={t.label} className="card">
@@ -191,12 +191,12 @@ export default async function PlanPage({ params }: { params: Promise<{ code: str
         </div>
       </section>
 
-      {plan.features.includes("tour360") && (
+      {plan.panorama && (
         <section className="pb-10">
           <div className="shell">
             <p className="eyebrow">Interior Walkthrough</p>
             <h2 className="mt-2 text-[24px] font-bold">ทัวร์ภายในเสมือนจริง 360°</h2>
-            <div className="mt-4"><Panorama src="/images/interior-360.jpg" label={`ภาพ 360 องศาภายใน ${plan.code}`} points={["ห้องโถง Living", "โถงบันได Double Volume", "ห้องครัว & ทานอาหาร", "ทางออกสวน"]} /></div>
+            <div className="mt-4"><Panorama src={plan.panorama} label={`ภาพ 360 องศาภายใน ${plan.code}`} points={["ห้องโถง Living", "โถงบันได Double Volume", "ห้องครัว & ทานอาหาร", "ทางออกสวน"]} /></div>
           </div>
         </section>
       )}

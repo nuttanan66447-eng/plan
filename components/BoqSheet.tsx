@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { BOQ_HEADER, toCsv } from "@/lib/csv";
 import { baht, num } from "@/lib/format";
 import type { BoqItem } from "@/lib/types";
 import { Icon } from "./Icon";
@@ -29,9 +30,8 @@ export function BoqSheet({ items, planCode, title }: { items: BoqItem[]; planCod
   const sub = mat + lab;
 
   const downloadCsv = () => {
-    const head = ["ลำดับ", "รายการ", "สเปก", "ปริมาณ", "หน่วย", "ค่าวัสดุ/หน่วย", "รวมค่าวัสดุ", "ค่าแรง/หน่วย", "รวมค่าแรง", "รวมเป็นเงิน"];
-    const rows = items.map((i) => [i.item_no, i.description, i.spec ?? "", i.qty, i.unit, i.material_rate, i.qty * i.material_rate, i.labor_rate, i.qty * i.labor_rate, i.qty * (i.material_rate + i.labor_rate)]);
-    const csv = [head, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const rows = items.map((i) => [i.section_name, i.item_no, i.description, i.spec ?? "", i.qty, i.unit, i.material_rate, i.qty * i.material_rate, i.labor_rate, i.qty * i.labor_rate, i.qty * (i.material_rate + i.labor_rate)]);
+    const csv = toCsv([BOQ_HEADER, ...rows]);
     const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
     const a = Object.assign(document.createElement("a"), { href: url, download: `BOQ-${planCode}.csv` });
     a.click();
