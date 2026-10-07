@@ -296,6 +296,28 @@ export default function Model3D({ plan }: { plan: Plan }) {
   const [loadError, setLoadError] = useState(false);
   const [modelH, setModelH] = useState(0);
   const [cutH, setCutH] = useState<number | null>(null);
+  const [cutFloor, setCutFloor] = useState<number | null>(null);
+
+  // Slice an uploaded model through the middle of a storey (roof ≈ 0.6 of a storey on top),
+  // then look down into it — mirrors the generated model's "ตัดชั้น" view.
+  const cutAtFloor = (i: number | null) => {
+    const a = api.current;
+    setCutFloor(i);
+    if (!a) return;
+    if (i == null) {
+      setCutH(null);
+      a.controls.target.set(0, modelH * 0.4, 0);
+      a.camera.position.copy(a.home);
+      return;
+    }
+    const storeyH = Math.min(4.2, Math.max(2.6, modelH / (plan.storeys + 0.6)));
+    const y = i * storeyH + storeyH * 0.55;
+    setCutH(y);
+    setAuto(false);
+    const s = a.built.span;
+    a.controls.target.set(0, i * storeyH, 0);
+    a.camera.position.set(s * 0.3, i * storeyH + s * 0.95, s * 0.55);
+  };
 
   useEffect(() => {
     const el = mount.current;
@@ -482,6 +504,7 @@ export default function Model3D({ plan }: { plan: Plan }) {
     if (!a) return;
     setMode("full");
     setCutH(null);
+    setCutFloor(null);
     a.camera.position.copy(a.home);
     setAuto(true);
   };
@@ -506,11 +529,18 @@ export default function Model3D({ plan }: { plan: Plan }) {
         <input id="sun-hour" type="range" min={6} max={18} value={hour} onChange={(e) => setHour(Number(e.target.value))} className="w-20 accent-[#c59b27] sm:w-28" />
       </div>
       {custom && !loadError ? (
-        <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-ink/90 px-2.5 py-1.5 text-[11.5px] text-white">
-          <label htmlFor="cut-h" className="whitespace-nowrap">{cutH == null ? "ตัดดูภายใน" : `ตัดที่ ${cutH.toFixed(1)} ม.`}</label>
-          <input id="cut-h" type="range" min={0.3} max={Math.max(0.5, modelH)} step={0.1} value={cutH ?? Math.max(0.5, modelH)}
-            onChange={(e) => { const v = Number(e.target.value); setCutH(v >= modelH ? null : v); setAuto(false); }}
-            disabled={loading} className="w-24 accent-[#c59b27] sm:w-36" />
+        <div className="absolute bottom-3 left-3 flex max-w-[calc(100%-10.5rem)] flex-wrap items-center gap-1 bg-ink/90 p-1 text-[11.5px] text-white">
+          <span className="hidden px-2 text-white/60 sm:inline">มุมมอง:</span>
+          <button onClick={() => cutAtFloor(null)} disabled={loading} className={`px-2.5 py-1 ${cutH == null ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ทั้งหลัง</button>
+          {Array.from({ length: plan.storeys }, (_, i) => (
+            <button key={i} onClick={() => cutAtFloor(i)} disabled={loading} className={`px-2.5 py-1 ${cutFloor === i && cutH != null ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ตัดชั้น {i + 1}</button>
+          ))}
+          <span className="flex items-center gap-1.5 px-2">
+            <label htmlFor="cut-h" className="whitespace-nowrap text-white/70">{cutH == null ? "ปรับเอง" : `${cutH.toFixed(1)} ม.`}</label>
+            <input id="cut-h" type="range" min={0.3} max={Math.max(0.5, modelH)} step={0.1} value={cutH ?? Math.max(0.5, modelH)}
+              onChange={(e) => { const v = Number(e.target.value); setCutFloor(null); setCutH(v >= modelH ? null : v); setAuto(false); }}
+              disabled={loading} aria-label="ความสูงที่ตัด" className="w-20 accent-[#c59b27] sm:w-28" />
+          </span>
         </div>
       ) : (
         <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-1 bg-ink/90 p-1 text-[11.5px] text-white">

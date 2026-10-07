@@ -54,7 +54,7 @@ function Text({ name, label, value, required, placeholder, hint }: { name: strin
   );
 }
 
-export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; sort_order?: number } }) {
+export function PlanEditor({ plan, boqCount = 0 }: { plan?: Plan & { is_published?: boolean; sort_order?: number }; boqCount?: number }) {
   const [state, action, pending] = useActionState<PlanFormState | null, FormData>(savePlan, null);
   const [gallery, setGallery] = useState<string[]>(() => {
     if (!plan) return [];
@@ -254,7 +254,7 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
           <div className="mt-5 border-t border-hairline pt-5">
             <span className="flex items-center gap-2 text-[14px] font-bold"><span className="bg-ink px-1.5 text-[11px] text-white">3.6</span><Icon name="3d_rotation" className="text-bronze-dark" /> โมเดล 3D หมุนได้ (.glb) — ไม่บังคับ</span>
             <p className="mt-1 text-[12px] text-muted">
-              ถ้าไม่อัปโหลด เว็บจะสร้างโมเดลจำลองจากข้อมูลแบบให้อัตโนมัติ • ไฟล์ .glb ขนาดไม่เกิน 50MB • หน่วย มม./ซม./ม. ได้ ระบบแปลงให้เอง
+              ถ้าไม่อัปโหลด เว็บจะสร้างโมเดลจำลองจากข้อมูลแบบให้อัตโนมัติ • ไฟล์ .glb ขนาดไม่เกิน 50MB • หน่วย มม./ซม./ม. ได้ ระบบแปลงให้เอง • ลูกค้ากด “ตัดชั้น 1 / ตัดชั้น 2” เพื่อดูภายในแต่ละชั้นได้ (ระบบตัดที่ความสูงกลางชั้นให้อัตโนมัติ และปรับเองได้ด้วยแถบเลื่อน)
             </p>
             <details className="group mt-3 border border-hairline bg-wash" open={!modelUrl}>
               <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-[13px] font-semibold">
@@ -321,7 +321,16 @@ export function PlanEditor({ plan }: { plan?: Plan & { is_published?: boolean; s
         </section>
       </form>
 
-      {plan && <BoqImport planId={plan.id} code={plan.code} />}
+      {plan ? <BoqImport planId={plan.id} code={plan.code} count={boqCount} /> : (
+        <section className="card p-5">
+          <h2 className="text-[16px] font-bold">4. รายการ BOQ (ไม่บังคับ)</h2>
+          <p className="mt-2 flex items-start gap-2 bg-wash p-3 text-[13px] text-ink-3">
+            <Icon name="info" className="mt-0.5 text-bronze-dark" />
+            <span>กด <b>เพิ่มแบบบ้าน</b> ก่อน ระบบจะเปิดหน้าแก้ไขแบบนี้ให้อัตโนมัติ แล้วนำเข้าไฟล์ BOQ ได้ทันทีในหัวข้อนี้ •{" "}
+              <a href="/boq-template.csv" download className="font-semibold text-bronze-dark underline">ดาวน์โหลดไฟล์ตัวอย่าง BOQ (CSV)</a> ไปกรอกรอไว้ก่อนได้</span>
+          </p>
+        </section>
+      )}
 
       {plan && (
         <form action={deletePlan} onSubmit={(e) => { if (!confirm(`ลบแบบ ${plan.code} ถาวร? รายการ BOQ ของแบบนี้จะถูกลบด้วย`)) e.preventDefault(); }}
@@ -371,16 +380,21 @@ function ImageSlot({ value, label, onPick, onClear, contain = false, wide = fals
   );
 }
 
-function BoqImport({ planId, code }: { planId: string; code: string }) {
+function BoqImport({ planId, code, count }: { planId: string; code: string; count: number }) {
   const [state, action, pending] = useActionState<BoqImportState | null, FormData>(importBoq, null);
   return (
     <form action={action} className="card p-5">
       <input type="hidden" name="plan_id" value={planId} />
       <h2 className="text-[16px] font-bold">4. รายการ BOQ (ไม่บังคับ)</h2>
       <p className="mt-1 text-[12.5px] text-muted">
-        นำเข้าไฟล์ CSV เพื่อแสดงตาราง BOQ ของแบบนี้ในหน้า <Link href={`/boq?plan=${code}`} className="text-bronze-dark underline" target="_blank">/boq</Link> — รายการเดิมจะถูกแทนที่ทั้งหมด.
-        วิธีที่ง่ายที่สุด: ดาวน์โหลดไฟล์ตัวอย่างจากหน้า BOQ แล้วแก้ใน Excel / Google Sheets แล้วบันทึกเป็น CSV (UTF-8)
+        ตาราง BOQ จะแสดงในหน้า <Link href={`/boq?plan=${code}`} className="text-bronze-dark underline" target="_blank">/boq</Link> ให้ลูกค้าเลือกดูแบบนี้ได้ —{" "}
+        {count > 0 ? <b className="text-ink">ตอนนี้มี {count} รายการ (นำเข้าใหม่จะแทนที่ทั้งหมด)</b> : <b className="text-ink">ยังไม่มีรายการ BOQ</b>}
       </p>
+      <ol className="mt-3 list-decimal space-y-1 pl-5 text-[12.5px] text-ink-3">
+        <li><a href="/boq-template.csv" download className="font-semibold text-bronze-dark underline">ดาวน์โหลดไฟล์ตัวอย่าง (CSV)</a>{count > 0 && <> หรือ <Link href={`/boq?plan=${code}#sheet`} target="_blank" className="font-semibold text-bronze-dark underline">ดาวน์โหลด BOQ ปัจจุบัน</Link> จากปุ่ม “ดาวน์โหลด Excel”</>}</li>
+        <li>เปิดด้วย Excel / Google Sheets แล้วกรอกรายการ (หมวด, ลำดับ เช่น 1.1, รายการ, สเปก, ปริมาณ, หน่วย, ค่าวัสดุ/หน่วย, ค่าแรง/หน่วย — ช่อง “รวม” เว้นว่างได้ ระบบคำนวณเอง)</li>
+        <li>บันทึกเป็น <b>CSV UTF-8</b> แล้วเลือกไฟล์ด้านล่าง กด “นำเข้า BOQ”</li>
+      </ol>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <input type="file" name="file" accept=".csv,text/csv" required className="text-[13px]" />
         <button disabled={pending} className="btn btn-outline btn-sm"><Icon name="upload_file" /> {pending ? "กำลังนำเข้า..." : "นำเข้า BOQ"}</button>

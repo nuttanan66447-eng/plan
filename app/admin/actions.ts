@@ -141,7 +141,9 @@ export async function savePlan(_prev: PlanFormState | null, fd: FormData): Promi
 
   const sb = await serverClient();
   const { data: old } = id ? await sb.from("plans").select("code").eq("id", id).maybeSingle() : { data: null };
-  const { error } = id ? await sb.from("plans").update(row).eq("id", id) : await sb.from("plans").insert(row);
+  const { data: saved, error } = id
+    ? await sb.from("plans").update(row).eq("id", id).select("id").maybeSingle()
+    : await sb.from("plans").insert(row).select("id").single();
   if (error) {
     if (error.code === "23505") return { error: `รหัสแบบ ${code} มีอยู่แล้ว กรุณาใช้รหัสอื่น` };
     console.error("savePlan", error.message);
@@ -149,7 +151,8 @@ export async function savePlan(_prev: PlanFormState | null, fd: FormData): Promi
   }
   revalidatePlan(code);
   if (old?.code && old.code !== code) revalidatePlan(old.code);
-  if (!id) redirect("/admin/plans?saved=" + encodeURIComponent(code));
+  // a new plan opens in the editor so BOQ, floor plans etc. can be added straight away
+  if (!id) redirect(`/admin/plans/${saved?.id}?created=1`);
   return { saved: true };
 }
 
