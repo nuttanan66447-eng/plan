@@ -1,4 +1,6 @@
-export type PlanStyle = "nordic" | "japandi" | "tropical" | "modern" | "minimal";
+export type PlanStyle =
+  | "modern" | "contemporary" | "minimal" | "nordic" | "japandi"
+  | "muji" | "tropical" | "loft" | "thai" | "classic";
 export type PlanFeature = "tour360" | "dollhouse" | "universal" | "pool" | "narrow";
 
 export interface Hotspot {

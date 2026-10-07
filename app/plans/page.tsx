@@ -5,6 +5,7 @@ import { Icon } from "@/components/Icon";
 import { PlanCard } from "@/components/PlanCard";
 import { listPlans, PAGE_SIZE, planStats, type PlanFilters } from "@/lib/data";
 import type { PlanStyle } from "@/lib/types";
+import { STYLE_KEYS } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "คลังแบบบ้าน 3D BIM พร้อมยื่นขออนุญาต",
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 
 type SP = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
-const STYLES: PlanStyle[] = ["nordic", "japandi", "tropical", "modern", "minimal"];
+const STYLES: PlanStyle[] = STYLE_KEYS;
 const SORTS = ["popular", "price_asc", "price_desc", "area_asc", "area_desc", "newest"] as const;
 
 export default async function PlansPage({ searchParams }: { searchParams: Promise<SP> }) {

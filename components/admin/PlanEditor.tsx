@@ -8,17 +8,11 @@ import { Icon } from "@/components/Icon";
 import { browserClient } from "@/lib/supabase/browser";
 import { uploadImage as upload } from "@/lib/upload";
 import { DEFAULT_HOTSPOTS } from "@/lib/hotspots";
+import { PLAN_STYLES, STYLE_LABEL } from "@/lib/format";
 import { autofillPlan } from "@/lib/plan-autofill";
 import type { Hotspot, Plan, PlanStyle } from "@/lib/types";
 import { HotspotEditor } from "./HotspotEditor";
 
-const STYLES = [
-  ["nordic", "นอร์ดิก (Nordic)"],
-  ["japandi", "แจแปนดิ (Japandi)"],
-  ["tropical", "ทรอปิคอล (Tropical)"],
-  ["modern", "โมเดิร์น (Modern)"],
-  ["minimal", "มินิมอล (Minimal)"],
-];
 const FEATURES = [
   ["tour360", "มีทัวร์ 360° / โมเดล 3D"],
   ["dollhouse", "มีภาพตัด 3D Dollhouse"],
@@ -213,7 +207,7 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
             <div className="field">
               <label htmlFor="p-style" className="field-label">สไตล์ <span className="text-bronze-dark">*</span></label>
               <select id="p-style" name="style" defaultValue={plan?.style ?? "modern"} className="input">
-                {STYLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                {PLAN_STYLES.map((st) => <option key={st.key} value={st.key}>{STYLE_LABEL[st.key]}</option>)}
               </select>
             </div>
             <Text name="series" label="ซีรีส์ / คอลเลกชัน" value={plan?.series} placeholder="Nordic Modern Series" />

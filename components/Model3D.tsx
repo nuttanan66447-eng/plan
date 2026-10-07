@@ -23,7 +23,21 @@ const PALETTES: Record<string, Palette> = {
   tropical: { wall: "#efe9df", upper: "#8b5e3c", roof: "#ece8e1", trim: "#5b3d27" },
   japandi: { wall: "#f1ece3", upper: "#f1ece3", roof: "#4a4a48", trim: "#a87a4f" },
   minimal: { wall: "#f4f4f2", upper: "#f4f4f2", roof: "#d9d9d6", trim: "#7d7a74" },
+  contemporary: { wall: "#e9e6e0", upper: "#5b6168", roof: "#d8d5cf", trim: "#2f3439" },
+  muji: { wall: "#f5f3ee", upper: "#f5f3ee", roof: "#3f3f3d", trim: "#b38a5e" },
+  loft: { wall: "#7a7d80", upper: "#3a3e43", roof: "#2f3236", trim: "#1e2124" },
+  thai: { wall: "#efe6d6", upper: "#a0714a", roof: "#a04a30", trim: "#5b3d27" },
+  classic: { wall: "#f3ead9", upper: "#f3ead9", roof: "#5a5550", trim: "#fbf8f2" },
 };
+
+/** Pitched roofs per style; anything not listed gets a flat slab roof with this overhang. */
+const PITCHED: Record<string, { kind: "gable" | "hip"; pitch: number; over: number; glazed?: boolean }> = {
+  nordic: { kind: "gable", pitch: 0.55, over: 0.2, glazed: true },
+  muji: { kind: "gable", pitch: 0.32, over: 0.45 },
+  thai: { kind: "gable", pitch: 0.6, over: 0.9 },
+  classic: { kind: "hip", pitch: 0.38, over: 0.5 },
+};
+const FLAT_OVER: Record<string, number> = { tropical: 1.4, modern: 0.7, japandi: 0.9, contemporary: 0.8, loft: 0.15 };
 
 type Mode = "full" | number; // number = show cut-away of that floor index
 
@@ -184,30 +198,46 @@ function buildHouse(plan: Plan, scene: THREE.Scene): Built {
   const top = plan.storeys * STOREY + 0.45;
   const { w: rw, d: rd, x: rx, z: rz } = prev;
   const roofMat = mat(pal.roof, { roughness: 0.5, metalness: plan.style === "nordic" ? 0.5 : 0.05 });
-  if (plan.style === "nordic") {
-    const span = rw + 0.4;
-    const h = span * 0.55;
+  const pitched = PITCHED[plan.style];
+  if (pitched?.kind === "gable") {
+    const span = rw + pitched.over * 2;
+    const depth = rd + pitched.over * 2;
+    const h = span * pitched.pitch;
     const shape = new THREE.Shape();
     shape.moveTo(-span / 2, 0);
     shape.lineTo(0, h);
     shape.lineTo(span / 2, 0);
     shape.lineTo(-span / 2, 0);
-    const geo = new THREE.ExtrudeGeometry(shape, { depth: rd + 0.4, bevelEnabled: false });
-    geo.translate(0, 0, -(rd + 0.4) / 2);
+    const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
+    geo.translate(0, 0, -depth / 2);
     const m = new THREE.Mesh(geo, roofMat);
     m.position.set(rx, top - 0.3, rz);
     m.castShadow = m.receiveShadow = true;
     roof.add(m);
-    // glazed gable end facing front
-    const gShape = new THREE.Shape();
-    gShape.moveTo(-span / 2 + 0.6, 0.15);
-    gShape.lineTo(0, h - 0.5);
-    gShape.lineTo(span / 2 - 0.6, 0.15);
-    const g = new THREE.Mesh(new THREE.ShapeGeometry(gShape), glass);
-    g.position.set(rx, top - 0.3, rz + (rd + 0.4) / 2 + 0.02);
-    roof.add(g);
+    if (pitched.glazed) {
+      // glazed gable end facing front
+      const gShape = new THREE.Shape();
+      gShape.moveTo(-span / 2 + 0.6, 0.15);
+      gShape.lineTo(0, h - 0.5);
+      gShape.lineTo(span / 2 - 0.6, 0.15);
+      const g = new THREE.Mesh(new THREE.ShapeGeometry(gShape), glass);
+      g.position.set(rx, top - 0.3, rz + depth / 2 + 0.02);
+      roof.add(g);
+    }
+  } else if (pitched?.kind === "hip") {
+    // four-sided pyramid stretched over the footprint
+    const span = rw + pitched.over * 2;
+    const depth = rd + pitched.over * 2;
+    const h = Math.min(span, depth) * pitched.pitch;
+    const geo = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1);
+    geo.rotateY(Math.PI / 4);
+    const m = new THREE.Mesh(geo, roofMat);
+    m.scale.set(span, h, depth);
+    m.position.set(rx, top - 0.3 + h / 2, rz);
+    m.castShadow = m.receiveShadow = true;
+    roof.add(m, box(span + 0.04, 0.22, depth + 0.04, mat(pal.trim), rx, top - 0.35, rz));
   } else {
-    const over = plan.style === "tropical" ? 1.4 : plan.style === "modern" ? 0.7 : plan.style === "japandi" ? 0.9 : 0.25;
+    const over = FLAT_OVER[plan.style] ?? 0.25;
     roof.add(box(rw + over * 2, 0.35, rd + over * 2, roofMat, rx, top - 0.12, rz));
     roof.add(box(rw + over * 2 + 0.04, 0.2, rd + over * 2 + 0.04, mat(pal.trim), rx, top - 0.2, rz)); // fascia band under the roof edge
   }

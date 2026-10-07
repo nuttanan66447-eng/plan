@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseCsv } from "@/lib/csv";
+import { STYLE_KEYS } from "@/lib/format";
 import { parseHotspots } from "@/lib/hotspots";
 import type { Hotspot } from "@/lib/types";
 import { serverClient } from "@/lib/supabase/server";
@@ -41,7 +42,7 @@ export interface PlanFormState {
   saved?: boolean;
 }
 
-const STYLES = ["nordic", "japandi", "tropical", "modern", "minimal"];
+const STYLES: string[] = STYLE_KEYS;
 const FEATURES = ["tour360", "dollhouse", "universal", "pool", "narrow"];
 
 function revalidatePlan(code?: string | null) {

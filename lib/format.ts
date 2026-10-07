@@ -1,3 +1,5 @@
+import type { PlanStyle } from "./types";
+
 const thb = new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 });
 
 export const baht = (n: number) => `฿${thb.format(Math.round(n))}`;
@@ -8,13 +10,22 @@ export const millions = (min: number, max: number) => `฿ ${num(min, 1)} - ${nu
 export const thaiDate = (iso: string | null, opts: Intl.DateTimeFormatOptions = { month: "short", year: "numeric" }) =>
   iso ? new Intl.DateTimeFormat("th-TH", opts).format(new Date(iso)) : "";
 
-export const STYLE_LABEL: Record<string, string> = {
-  nordic: "นอร์ดิก (Nordic)",
-  japandi: "แจแปนดิ (Japandi)",
-  tropical: "ทรอปิคอล (Tropical)",
-  modern: "โมเดิร์น (Modern)",
-  minimal: "มินิมอล (Minimal)",
-};
+/** Every house style, in the order shown in filters and the admin dropdown. */
+export const PLAN_STYLES: { key: PlanStyle; th: string; en: string }[] = [
+  { key: "modern", th: "โมเดิร์น", en: "Modern" },
+  { key: "contemporary", th: "คอนเทมโพรารี", en: "Contemporary" },
+  { key: "minimal", th: "มินิมอล", en: "Minimal" },
+  { key: "nordic", th: "นอร์ดิก", en: "Nordic" },
+  { key: "japandi", th: "แจแปนดิ", en: "Japandi" },
+  { key: "muji", th: "มูจิ", en: "Muji" },
+  { key: "tropical", th: "ทรอปิคอล", en: "Tropical" },
+  { key: "loft", th: "ลอฟท์", en: "Loft" },
+  { key: "thai", th: "ไทยประยุกต์", en: "Thai Contemporary" },
+  { key: "classic", th: "คลาสสิก / ยุโรป", en: "Classic" },
+];
+export const STYLE_KEYS = PLAN_STYLES.map((s) => s.key);
+
+export const STYLE_LABEL: Record<string, string> = Object.fromEntries(PLAN_STYLES.map((s) => [s.key, `${s.th} (${s.en})`]));
 
 export const FEATURE_LABEL: Record<string, { label: string; icon: string }> = {
   tour360: { label: "โมเดล 3D หมุนดูรอบทิศ 360°", icon: "view_in_ar" },

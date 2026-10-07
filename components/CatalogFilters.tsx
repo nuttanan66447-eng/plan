@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Icon } from "./Icon";
+import { PLAN_STYLES } from "@/lib/format";
 
 type Params = Record<string, string | undefined>;
 
@@ -157,7 +158,7 @@ export function CatalogToolbar({ params, total }: { params: Params; total: numbe
   const { set, pending } = useParamNav(params);
   const [q, setQ] = useState(params.q ?? "");
   useEffect(() => setQ(params.q ?? ""), [params.q]);
-  const styles = [["", "ทุกสไตล์"], ["nordic", "นอร์ดิก"], ["japandi", "แจแปนดิ"], ["tropical", "ทรอปิคอล"], ["modern", "โมเดิร์น"], ["minimal", "มินิมอล"]];
+  const styles = [["", "ทุกสไตล์"], ...PLAN_STYLES.map((s) => [s.key, s.th])];
   return (
     <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
       <form onSubmit={(e) => { e.preventDefault(); set({ q: q.trim() || undefined }); }} className="flex flex-1 border border-hairline bg-white" role="search">
