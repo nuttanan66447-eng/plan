@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useState } from "react";
+import { DEFAULT_HOTSPOTS } from "@/lib/hotspots";
 import type { Plan } from "@/lib/types";
 import { FloorPlan, SunPath } from "./FloorPlan";
 import { Icon } from "./Icon";
@@ -24,11 +25,6 @@ const TABS = [
   { key: "sun", label: "ทิศแดด-ลม (SUN PATH)", icon: "light_mode" },
 ] as const;
 
-const HOTSPOTS = [
-  { x: 38, y: 30, title: "ระบบหลังคา & ฉนวน", body: "หลังคาเมทัลชีทเคลือบ AZ150 หรือกระเบื้องคอนกรีต พร้อมฉนวน PU กันความร้อน" },
-  { x: 62, y: 52, title: "ช่องแสงกระจก Low-E", body: "กระจกลามิเนต Low-E ลดความร้อน 65% รับแสงธรรมชาติเต็มที่" },
-  { x: 25, y: 74, title: "พื้นยกระดับ & เทอร์เรซ", body: "พื้น WPC กันปลวก ยกระดับ +0.45 ม. ป้องกันน้ำท่วมขัง" },
-];
 
 export function PlanViewer({ plan }: { plan: Plan }) {
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("model");
@@ -37,9 +33,11 @@ export function PlanViewer({ plan }: { plan: Plan }) {
   const [floor, setFloor] = useState(0);
   const [spot, setSpot] = useState<number | null>(null);
   const photos = plan.gallery.filter((g) => g !== plan.panorama && g !== plan.section_image);
-  const exterior = photos.length ? photos : [plan.image];
+  // cover photo first — it carries the numbered points
+  const exterior = photos.includes(plan.image) ? [plan.image, ...photos.filter((g) => g !== plan.image)] : photos.length ? photos : [plan.image];
   const sectionImg = plan.section_image ?? "/images/section-cutaway.jpg";
   const floorImg = plan.floorplan_images?.[floor] || null;
+  const spots = plan.hotspots ?? DEFAULT_HOTSPOTS;
 
   return (
     <div className="card overflow-hidden">
@@ -61,7 +59,7 @@ export function PlanViewer({ plan }: { plan: Plan }) {
           <>
             <div className="absolute inset-0 transition-transform duration-300" style={{ transform: `scale(${zoom})` }}>
               <Image src={exterior[img]} alt={`${plan.code} มุมมองภายนอก`} fill priority sizes="(max-width: 1024px) 100vw, 860px" className="object-cover" />
-              {img === 0 && HOTSPOTS.map((h, i) => (
+              {img === 0 && spots.map((h, i) => (
                 <button key={i} onClick={() => setSpot(spot === i ? null : i)} style={{ left: `${h.x}%`, top: `${h.y}%` }}
                   className={`absolute grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center text-[11px] font-bold shadow-[2px_2px_0_0_#1e232a] ${spot === i ? "bg-ink text-white" : "bg-bronze text-ink"}`}
                   aria-label={h.title}>
@@ -69,10 +67,10 @@ export function PlanViewer({ plan }: { plan: Plan }) {
                 </button>
               ))}
             </div>
-            {spot !== null && (
+            {spot !== null && spots[spot] && (
               <div className="absolute left-4 top-4 max-w-[260px] border border-ink bg-white p-3 shadow-[4px_4px_0_0_rgba(30,35,42,.12)] animate-fade-up">
-                <p className="text-[13px] font-bold">{HOTSPOTS[spot].title}</p>
-                <p className="mt-1 text-[12px] text-muted">{HOTSPOTS[spot].body}</p>
+                <p className="text-[13px] font-bold">{spots[spot].title}</p>
+                {spots[spot].body && <p className="mt-1 text-[12px] text-muted">{spots[spot].body}</p>}
               </div>
             )}
           </>

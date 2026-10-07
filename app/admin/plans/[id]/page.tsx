@@ -14,9 +14,10 @@ export default async function EditPlanPage({ params, searchParams }: { params: P
   if (!isAdmin) return <NotAdmin userId={user.id} />;
   const { id } = await params;
   const { created } = await searchParams;
-  const [{ data }, { count: boqCount }] = await Promise.all([
+  const [{ data }, { count: boqCount }, { data: codes }] = await Promise.all([
     sb.from("plans").select("*").eq("id", id).maybeSingle(),
     sb.from("boq_items").select("id", { count: "exact", head: true }).eq("plan_id", id),
+    sb.from("plans").select("code"),
   ]);
   if (!data) notFound();
   const plan = data as Plan & { is_published: boolean; sort_order: number };
@@ -31,7 +32,7 @@ export default async function EditPlanPage({ params, searchParams }: { params: P
             <Icon name="check_circle" /> เพิ่มแบบ {plan.code} เรียบร้อย — เพิ่มแปลน รูปภาพ หรือนำเข้า BOQ (หัวข้อ 4) ต่อได้เลย
           </p>
         )}
-        <div className="mt-6"><PlanEditor key={plan.id} plan={plan} boqCount={boqCount ?? 0} /></div>
+        <div className="mt-6"><PlanEditor key={plan.id} plan={plan} boqCount={boqCount ?? 0} codes={(codes ?? []).map((p) => p.code as string)} /></div>
       </section>
     </>
   );

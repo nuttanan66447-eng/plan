@@ -2,12 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { startTransition, useActionState, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { deletePlan, importBoq, savePlan, type BoqImportState, type PlanFormState } from "@/app/admin/actions";
 import { Icon } from "@/components/Icon";
 import { browserClient } from "@/lib/supabase/browser";
 import { uploadImage as upload } from "@/lib/upload";
-import type { Plan } from "@/lib/types";
+import { DEFAULT_HOTSPOTS } from "@/lib/hotspots";
+import { autofillPlan } from "@/lib/plan-autofill";
+import type { Hotspot, Plan, PlanStyle } from "@/lib/types";
+import { HotspotEditor } from "./HotspotEditor";
 
 const STYLES = [
   ["nordic", "นอร์ดิก (Nordic)"],
@@ -54,7 +57,9 @@ function Text({ name, label, value, required, placeholder, hint }: { name: strin
   );
 }
 
-export function PlanEditor({ plan, boqCount = 0 }: { plan?: Plan & { is_published?: boolean; sort_order?: number }; boqCount?: number }) {
+const AUTO_DRIVERS = ["style", "storeys", "area_sqm", "bedrooms", "bathrooms", "parking"];
+
+export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & { is_published?: boolean; sort_order?: number }; boqCount?: number; codes?: string[] }) {
   const [state, action, pending] = useActionState<PlanFormState | null, FormData>(savePlan, null);
   const [gallery, setGallery] = useState<string[]>(() => {
     if (!plan) return [];
@@ -69,7 +74,39 @@ export function PlanEditor({ plan, boqCount = 0 }: { plan?: Plan & { is_publishe
   const [modelUrl, setModelUrl] = useState<string>(plan?.model_url ?? "");
   const [busy, setBusy] = useState<string | null>(null);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const [hotspots, setHotspots] = useState<Hotspot[]>(plan ? plan.hotspots ?? DEFAULT_HOTSPOTS : []);
+  const [autoMsg, setAutoMsg] = useState<string | null>(null);
   const codeRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  /** Fills every empty (or previously auto-filled) field from style + size. Fields typed by hand are never replaced. */
+  const autofill = () => {
+    const form = formRef.current;
+    if (!form) return 0;
+    const field = (k: string) => form.elements.namedItem(k) as HTMLInputElement | null;
+    const typed = (k: string) => {
+      const el = field(k);
+      return el && el.value.trim() && el.dataset.auto !== "1" ? Number(el.value) : null;
+    };
+    const values = autofillPlan(
+      { style: (field("style")?.value ?? "modern") as PlanStyle, storeys: Number(field("storeys")?.value) || 1,
+        area: typed("area_sqm"), bedrooms: typed("bedrooms"), bathrooms: typed("bathrooms"), parking: typed("parking") },
+      codes.filter((c) => c !== plan?.code),
+    );
+    let n = 0;
+    for (const [k, v] of Object.entries(values)) {
+      const el = field(k);
+      if (!el || (k === "code" && plan) || (el.value.trim() && el.dataset.auto !== "1") || el.value === v) continue;
+      el.value = v;
+      el.dataset.auto = "1";
+      n++;
+    }
+    return n;
+  };
+  useEffect(() => {
+    // a brand-new plan starts fully pre-filled; changing style or size refreshes the auto-filled fields
+    if (!plan) autofill();
+  }, []);
 
   const onFiles = async (files: FileList | null, kind: "gallery" | "panorama" | "section" | number) => {
     if (!files?.length) return;
@@ -122,10 +159,17 @@ export function PlanEditor({ plan, boqCount = 0 }: { plan?: Plan & { is_publishe
   return (
     <div className="space-y-6">
       <form
+        ref={formRef}
         className="space-y-6"
+        onInput={(e) => {
+          // a field typed by hand is no longer auto-filled
+          const t = e.target as HTMLInputElement;
+          if (t.dataset.auto) delete t.dataset.auto;
+        }}
         onChange={(e) => {
           const t = e.target as unknown as HTMLInputElement;
           if (t.name === "storeys") setFloors(Math.min(4, Math.max(1, Number(t.value) || 1)));
+          if (!plan && AUTO_DRIVERS.includes(t.name)) autofill();
         }}
         onSubmit={(e) => {
           // submit through a transition so a validation error doesn't reset the whole form
@@ -140,10 +184,24 @@ export function PlanEditor({ plan, boqCount = 0 }: { plan?: Plan & { is_publishe
         <input type="hidden" name="panorama" value={panorama} />
         <input type="hidden" name="model_url" value={modelUrl} />
         <input type="hidden" name="section_image" value={section} />
+        <input type="hidden" name="hotspots" value={JSON.stringify(hotspots.filter((h) => h.title.trim()))} />
         <input type="hidden" name="floorplan_images" value={JSON.stringify(floorplans.slice(0, floors))} />
 
         <section className="card p-5">
-          <h2 className="text-[16px] font-bold">1. ข้อมูลหลัก</h2>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-[16px] font-bold">1. ข้อมูลหลัก</h2>
+              <p className="text-[12px] text-muted">
+                {plan ? "กดปุ่มด้านขวาเพื่อเติมช่องที่ยังว่างจากสไตล์และสเปก" : "ระบบกรอกให้อัตโนมัติจาก สไตล์ + จำนวนชั้น + พื้นที่ใช้สอย (หัวข้อ 2) — ช่องสีครีมคือค่าที่ระบบเติมให้ แก้ได้ทุกช่อง ช่องที่พิมพ์เองจะไม่ถูกเปลี่ยน"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {autoMsg && <span className="text-[12px] text-success" role="status">{autoMsg}</span>}
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { const n = autofill(); setAutoMsg(n ? `เติม ${n} ช่องแล้ว` : "ไม่มีช่องว่างให้เติม"); }}>
+                <Icon name="auto_fix_high" /> เติมอัตโนมัติ
+              </button>
+            </div>
+          </div>
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             <div className="field">
               <label htmlFor="p-code" className="field-label">รหัสแบบ <span className="text-bronze-dark">*</span></label>
@@ -228,6 +286,7 @@ export function PlanEditor({ plan, boqCount = 0 }: { plan?: Plan & { is_publishe
               <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { onFiles(e.target.files, "gallery"); e.target.value = ""; }} />
             </label>
           </div>
+          <HotspotEditor image={cover} value={hotspots} onChange={setHotspots} />
           </MediaGroup>
 
           <MediaGroup no="3.2" icon="splitscreen" tab="ตัดขวาง SECTION 3D" desc="ภาพตัดอาคาร / Dollhouse 3 มิติ แสดงความสูงฝ้าและการจัดห้อง (ไม่บังคับ)">

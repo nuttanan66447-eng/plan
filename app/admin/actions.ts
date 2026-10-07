@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseCsv } from "@/lib/csv";
+import { parseHotspots } from "@/lib/hotspots";
+import type { Hotspot } from "@/lib/types";
 import { serverClient } from "@/lib/supabase/server";
 
 const STATUSES = ["new", "contacted", "quoted", "won", "lost"];
@@ -100,6 +102,12 @@ export async function savePlan(_prev: PlanFormState | null, fd: FormData): Promi
   } catch {
     return { error: "ข้อมูลรูปแปลนไม่ถูกต้อง" };
   }
+  let hotspots: Hotspot[] = [];
+  try {
+    hotspots = parseHotspots(JSON.parse(String(fd.get("hotspots") ?? "[]"))) ?? [];
+  } catch {
+    return { error: "ข้อมูลจุดอธิบายบนรูปไม่ถูกต้อง" };
+  }
   const image = text("image", 500) ?? gallery[0];
   if (!image) return { error: "กรุณาอัปโหลดรูปหลักอย่างน้อย 1 รูป" };
 
@@ -131,6 +139,7 @@ export async function savePlan(_prev: PlanFormState | null, fd: FormData): Promi
     model_url: text("model_url", 500),
     section_image: text("section_image", 500),
     floorplan_images: floorplans,
+    hotspots,
     features: fd.getAll("features").map(String).filter((f) => FEATURES.includes(f)),
     pages_arch: num("pages_arch") ?? 36,
     pages_struct: num("pages_struct") ?? 22,

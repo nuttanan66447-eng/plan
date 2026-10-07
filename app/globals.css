@@ -143,6 +143,7 @@
   }
   .input::placeholder { color: rgba(140, 115, 62, .55); }
   .input:focus { outline: 1px solid var(--color-bronze); outline-offset: 1px; border-color: var(--color-bronze); }
+  .input[data-auto="1"] { background-color: var(--color-bronze-wash); }
   .input[aria-invalid="true"] { border-color: var(--color-danger); }
   select.input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #1e232a 50%), linear-gradient(135deg, #1e232a 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 2.2rem; }
 

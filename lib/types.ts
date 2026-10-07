@@ -1,6 +1,14 @@
 export type PlanStyle = "nordic" | "japandi" | "tropical" | "modern" | "minimal";
 export type PlanFeature = "tour360" | "dollhouse" | "universal" | "pool" | "narrow";
 
+export interface Hotspot {
+  /** position on the photo in % from the left / top */
+  x: number;
+  y: number;
+  title: string;
+  body: string;
+}
+
 export interface Plan {
   id: string;
   code: string;
@@ -30,6 +38,8 @@ export interface Plan {
   model_url: string | null;
   section_image: string | null;
   floorplan_images: string[];
+  /** numbered points on the cover photo; null = site defaults */
+  hotspots: Hotspot[] | null;
   features: PlanFeature[];
   pages_arch: number | null;
   pages_struct: number | null;
