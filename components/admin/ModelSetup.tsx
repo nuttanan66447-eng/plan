@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { MAX_ROOMS, ROOM_PRESETS } from "@/lib/model-config";
-import type { ModelConfig, ModelRoom, Plan } from "@/lib/types";
+import type { ModelConfig, ModelRoom, ModelView, Plan } from "@/lib/types";
 
 const Model3D = dynamic(() => import("@/components/Model3D"), {
   ssr: false,
@@ -24,7 +24,13 @@ export function ModelSetup({ plan, value, onChange }: { plan: Plan; value: Model
   const [moving, setMoving] = useState<number | null>(null);
   const [hint, setHint] = useState<string | null>(null);
 
-  const save = (next: ModelConfig) => onChange(next.rooms.length || next.cuts.some((c) => c != null) ? next : null);
+  const save = (next: ModelConfig) => onChange(next.rooms.length || next.cuts.some((c) => c != null) || next.views?.some(Boolean) ? next : null);
+  const setView = (f: number, v: ModelView | null) => {
+    const views = [...(cfg.views ?? [])];
+    while (views.length <= f) views.push(null);
+    views[f] = v;
+    save({ ...cfg, views });
+  };
   const setRoom = (i: number, patch: Partial<ModelRoom>) => save({ ...cfg, rooms: cfg.rooms.map((r, k) => (k === i ? { ...r, ...patch } : r)) });
   const setCut = (f: number, h: number | null) => {
     const cuts = [...cfg.cuts];
@@ -68,6 +74,7 @@ export function ModelSetup({ plan, value, onChange }: { plan: Plan; value: Model
         <li><b>1.</b> กด <b>ตัดชั้น 1</b> ใต้ภาพ</li>
         <li><b>2.</b> เลื่อนแถบความสูงให้ตัดผ่านกลางผนัง (เหนือพื้นราว 1.2–1.5 ม.)</li>
         <li><b>3.</b> คลิกบนพื้นของแต่ละห้องเพื่อวางป้าย แล้วตั้งชื่อด้านขวา</li>
+        <li><b>4.</b> หมุน/ซูมให้ได้มุมที่ชอบ แล้วกด <b>ใช้มุมนี้</b> (มุมขวาล่างของภาพ)</li>
       </ol>
       <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div>
@@ -75,6 +82,7 @@ export function ModelSetup({ plan, value, onChange }: { plan: Plan; value: Model
             <Model3D plan={plan} config={cfg} highlight={selected}
               onPick={onPick}
               onCut={(f, h) => setCut(f, h)}
+              onView={(f, v) => { setView(f, v); setHint(`บันทึกมุมกล้องของชั้น ${f + 1} แล้ว — ลูกค้าจะเห็นมุมนี้เมื่อกดตัดชั้น ${f + 1}`); }}
               onFloor={(f) => { setFloor(f); setSelected(null); setMoving(null); setHint(null); }} />
           </div>
           {(hint || moving != null) && (
@@ -90,8 +98,11 @@ export function ModelSetup({ plan, value, onChange }: { plan: Plan; value: Model
             <p className="field-label">ความสูงที่ตัดแต่ละชั้น (ม. จากจุดต่ำสุดของโมเดล)</p>
             <ul className="mt-1.5 divide-y divide-hairline border border-hairline">
               {Array.from({ length: plan.storeys }, (_, f) => (
-                <li key={f} className={`flex items-center justify-between gap-2 px-3 py-2 ${floor === f ? "bg-bronze-wash" : ""}`}>
+                <li key={f} className={`flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 py-2 ${floor === f ? "bg-bronze-wash" : ""}`}>
                   <span className="font-semibold">ชั้น {f + 1}</span>
+                  <span className="order-last w-full text-[11.5px] text-muted">
+                    มุมกล้อง: {cfg.views?.[f] ? <>บันทึกแล้ว <button type="button" onClick={() => setView(f, null)} className="underline hover:text-danger">ล้าง</button></> : "อัตโนมัติ (ซูมเข้าหาห้องที่วางป้าย)"}
+                  </span>
                   {cfg.cuts[f] != null ? (
                     <span className="flex items-center gap-2"><b>{cfg.cuts[f]!.toFixed(1)} ม.</b>
                       <button type="button" onClick={() => setCut(f, null)} className="text-muted underline hover:text-danger">ใช้ค่าอัตโนมัติ</button></span>

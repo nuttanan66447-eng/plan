@@ -6,7 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import type { ModelConfig, Plan } from "@/lib/types";
+import type { ModelConfig, ModelView, Plan } from "@/lib/types";
 import { roomLayout } from "./FloorPlan";
 import { Icon } from "./Icon";
 
@@ -281,10 +281,14 @@ function sliceBox(model: THREE.Object3D, y: number) {
   const out = new THREE.Box3();
   const b = new THREE.Box3();
   model.updateMatrixWorld(true);
+  const all = new THREE.Box3().setFromObject(model);
+  const full = Math.max(all.max.x - all.min.x, all.max.z - all.min.z);
   model.traverse((o) => {
     const m = o as THREE.Mesh;
     if (!m.isMesh) return;
     b.setFromObject(m);
+    // skip site-wide pieces (terrain, a merged batch of trees) — they would frame the whole lot
+    if (Math.max(b.max.x - b.min.x, b.max.z - b.min.z) > full * 0.6) return;
     if (b.min.y < y && b.max.y > y - 0.6) out.union(b);
   });
   return out.isEmpty() ? null : out;
@@ -302,9 +306,17 @@ function findGround(model: THREE.Object3D, size: THREE.Vector3) {
   });
   const full = Math.max(size.x, size.z);
   if (boxes.length < 2 || full <= 0) return 0;
+  const wide = (b: THREE.Box3) => Math.max(b.max.x - b.min.x, b.max.z - b.min.z) > full * 0.6;
+  // 1) a flat, site-wide piece (terrain block, lawn, paving): the house stands on its top
+  let ground = 0;
+  for (const b of boxes) if (wide(b) && b.max.y - b.min.y < size.y * 0.35 && b.max.y < size.y * 0.5) ground = Math.max(ground, b.max.y);
+  if (ground > 0.05) return Math.round(ground * 10) / 10;
+  // 2) otherwise scan upwards (ignoring tall site-wide pieces such as a merged batch of trees)
+  //    until a slice is clearly narrower than the whole model — that is where the house starts
+  const parts = boxes.filter((b) => !wide(b));
   for (let y = 0.2; y < size.y * 0.5; y += 0.2) {
     const slice = new THREE.Box3();
-    for (const b of boxes) if (b.min.y < y && b.max.y > y) slice.union(b);
+    for (const b of boxes) if (b.min.y < y && b.max.y > y && (parts.includes(b) || b.max.y - b.min.y < size.y * 0.35)) slice.union(b);
     if (slice.isEmpty()) continue;
     if (Math.max(slice.max.x - slice.min.x, slice.max.z - slice.min.z) < full * 0.75) return y <= 0.2 ? 0 : Math.round((y - 0.2) * 10) / 10;
   }
@@ -380,9 +392,11 @@ interface EditorHooks {
   onFloor?: (floor: number | null) => void;
   /** admin editor: room to emphasise */
   highlight?: number | null;
+  /** admin editor: save the current camera as the opening view of a storey's cut */
+  onView?: (floor: number, view: ModelView) => void;
 }
 
-export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, highlight = null }: { plan: Plan } & EditorHooks) {
+export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, onView, highlight = null }: { plan: Plan } & EditorHooks) {
   const config = draft !== undefined ? draft : plan.model_config;
   const editing = Boolean(onPick || onCut);
   const mount = useRef<HTMLDivElement>(null);
@@ -428,15 +442,23 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, h
     const y = floorCut(i);
     setCutH(y);
     setAuto(false);
-    focusCut(y);
+    const view = config?.views?.[i];
+    if (view) {
+      a.camera.position.set(...view.p);
+      a.controls.target.set(...view.t);
+    } else focusCut(y, i);
     onFloor?.(i);
   };
   /** Look down into the slice at height y, framing what the cut passes through (walls), not the whole site. */
-  const focusCut = (y: number) => {
+  const focusCut = (y: number, floor: number | null = cutFloor) => {
     const a = api.current;
     if (!a) return;
     const floorY = Math.max(0, y - 1.3);
-    const box = a.model ? sliceBox(a.model, y) : null;
+    // rooms the admin labelled on this storey are the best guide to where the house is
+    const labelled = (config?.rooms ?? []).filter((r) => r.floor === floor);
+    const box = labelled.length
+      ? new THREE.Box3().setFromPoints(labelled.map((r) => new THREE.Vector3(r.x, r.y, r.z))).expandByScalar(3)
+      : a.model ? sliceBox(a.model, y) : null;
     const c = box ? box.getCenter(new THREE.Vector3()) : new THREE.Vector3();
     const s = box ? Math.max(8, Math.max(box.max.x - box.min.x, box.max.z - box.min.z) * 1.55) : a.built.span;
     a.controls.target.set(c.x, floorY, c.z);
@@ -751,6 +773,11 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, h
       <div className="absolute bottom-3 right-3 flex bg-ink/90 text-white">
         <button type="button" onClick={() => zoom(0.8)} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ซูมเข้า"><Icon name="zoom_in" /></button>
         <button type="button" onClick={() => zoom(1.25)} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ซูมออก"><Icon name="zoom_out" /></button>
+        {onView && cutFloor != null && cutH != null && (
+          <button type="button" title="ใช้มุมกล้องนี้เป็นมุมเริ่มต้นของชั้นนี้" aria-label="บันทึกมุมกล้องของชั้นนี้"
+            onClick={() => { const a = api.current; if (a) onView(cutFloor, { p: a.camera.position.toArray(), t: a.controls.target.toArray() }); }}
+            className="flex h-9 items-center gap-1 bg-bronze px-2.5 text-[11.5px] font-bold text-ink hover:bg-bronze-light"><Icon name="photo_camera" /> ใช้มุมนี้</button>
+        )}
         <button type="button" onClick={() => setAuto((v) => !v)} className={`grid h-9 w-9 place-items-center ${auto ? "bg-bronze text-ink" : "hover:bg-white/10"}`} aria-label={auto ? "หยุดหมุนอัตโนมัติ" : "หมุนอัตโนมัติ"} aria-pressed={auto}><Icon name="3d_rotation" /></button>
         <button type="button" onClick={reset} className="grid h-9 w-9 place-items-center text-bronze hover:bg-white/10" aria-label="รีเซ็ตมุมมอง"><Icon name="restart_alt" /></button>
       </div>

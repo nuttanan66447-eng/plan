@@ -1,4 +1,4 @@
-import type { ModelConfig, ModelRoom } from "./types";
+import type { ModelConfig, ModelRoom, ModelView } from "./types";
 
 export const MAX_ROOMS = 40;
 
@@ -46,6 +46,16 @@ export function parseModelConfig(raw: unknown): ModelConfig | null {
     }))
     .filter((x) => x.th)
     .slice(0, MAX_ROOMS);
-  if (!cuts.some((c) => c != null) && !rooms.length) return null;
-  return { cuts, rooms };
+  const vec = (v: unknown) =>
+    Array.isArray(v) && v.length === 3 && v.every((n) => Number.isFinite(Number(n)) && Math.abs(Number(n)) < 5000)
+      ? (v.map((n) => Math.round(Number(n) * 100) / 100) as [number, number, number])
+      : null;
+  const views = (Array.isArray(r.views) ? r.views : []).slice(0, 4).map((v): ModelView | null => {
+    const o = v && typeof v === "object" ? (v as Record<string, unknown>) : null;
+    const p = vec(o?.p);
+    const t = vec(o?.t);
+    return p && t ? { p, t } : null;
+  });
+  if (!cuts.some((c) => c != null) && !rooms.length && !views.some(Boolean)) return null;
+  return { cuts, rooms, views };
 }

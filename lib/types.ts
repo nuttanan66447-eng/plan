@@ -25,6 +25,13 @@ export interface ModelRoom {
 export interface ModelConfig {
   cuts: (number | null)[];
   rooms: ModelRoom[];
+  /** saved camera per storey: position p and look-at target t, model metres */
+  views?: (ModelView | null)[];
+}
+
+export interface ModelView {
+  p: [number, number, number];
+  t: [number, number, number];
 }
 
 export interface Plan {
