@@ -328,7 +328,7 @@ function applySun(a: { built: Built; sun: THREE.DirectionalLight; hemi: THREE.He
   a.scene.background = new THREE.Color(dusk > 0.8 ? "#2c3347" : "#e9eef6").lerp(new THREE.Color("#c8d6ea"), 0.3);
 }
 
-function textSprite(main: string, sub: string, active = false) {
+function textSprite(main: string, sub: string, active = false, fixedSize = false) {
   const c = document.createElement("canvas");
   c.width = 512;
   c.height = 160;
@@ -340,14 +340,18 @@ function textSprite(main: string, sub: string, active = false) {
   g.fillRect(0, 0, 10, 160);
   g.textAlign = "center";
   g.fillStyle = active ? "#1e232a" : "#ffffff";
-  g.font = `600 58px ${font}`;
+  // shrink long names (e.g. รับประทานอาหาร) to fit the tag
+  let size = 58;
+  do g.font = `600 ${size}px ${font}`;
+  while (g.measureText(main).width > 470 && (size -= 4) > 26);
   g.fillText(main, 261, 78);
   g.fillStyle = active ? "#1e232a" : "#eec14b";
   g.font = `600 30px ${font}`;
   g.fillText(sub, 261, 126);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+  // fixedSize: same size on screen at any zoom (labels on uploaded models)
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, sizeAttenuation: !fixedSize }));
   sprite.scale.set(3.2, 1, 1);
   sprite.renderOrder = 10;
   return sprite;
@@ -407,7 +411,6 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, h
   const [cutH, setCutH] = useState<number | null>(null);
   const [cutFloor, setCutFloor] = useState<number | null>(null);
   const [groundY, setGroundY] = useState(0);
-  const [focus, setFocus] = useState(20);
 
   // Slice an uploaded model through the middle of a storey (roof ≈ 0.6 of a storey on top),
   // then look down into it — mirrors the generated model's "ตัดชั้น" view.
@@ -436,7 +439,6 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, h
     const box = a.model ? sliceBox(a.model, y) : null;
     const c = box ? box.getCenter(new THREE.Vector3()) : new THREE.Vector3();
     const s = box ? Math.max(8, Math.max(box.max.x - box.min.x, box.max.z - box.min.z) * 1.55) : a.built.span;
-    setFocus(s);
     a.controls.target.set(c.x, floorY, c.z);
     a.camera.position.set(c.x + s * 0.3, floorY + s * 0.95, c.z + s * 0.55);
   };
@@ -630,15 +632,17 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, h
     });
     a.labels.clear();
     if (cutH == null || cutFloor == null || loading) return;
-    const scale = Math.min(1.4, Math.max(0.5, focus / 20));
+    // ~34px tall tags whatever the zoom: with sizeAttenuation off, scale is a fraction of the view height × 2·tan(fov/2)
+    const viewH = Math.max(200, mount.current?.clientHeight ?? 450);
+    const tagH = (Math.min(40, Math.max(26, viewH * 0.075)) / viewH) * 2 * Math.tan(THREE.MathUtils.degToRad(a.camera.fov / 2));
     (rooms ?? []).forEach((r, i) => {
       if (r.floor !== cutFloor) return;
-      const sp = textSprite(r.th, r.en, i === highlight);
-      sp.scale.multiplyScalar(scale);
+      const sp = textSprite(r.th, r.en, i === highlight, true);
+      sp.scale.set(tagH * 3.2, tagH, 1);
       sp.position.set(r.x, Math.min(r.y + 0.5, cutH - 0.1), r.z);
       a.labels.add(sp);
     });
-  }, [rooms, cutH, cutFloor, highlight, loading, focus]);
+  }, [rooms, cutH, cutFloor, highlight, loading]);
 
   // floors / roof cut-away
   useEffect(() => {
