@@ -79,12 +79,24 @@ async function loadModel(url: string, scene: THREE.Scene, clip: THREE.Plane) {
   root.position.x -= c.x;
   root.position.z -= c.z;
   root.position.y -= box.min.y;
+  // section fill ("poché"): while sliced, the inside faces of cut solids are drawn flat and dark,
+  // so walls read as solid black bands like a drawn floor plan
+  const poche = new THREE.MeshBasicMaterial({ color: "#2a2f36", side: THREE.BackSide, clippingPlanes: [clip] });
+  const fills: [THREE.Mesh, THREE.Mesh][] = [];
+  const mats = new Set<THREE.Material>();
   root.traverse((o) => {
     const m = o as THREE.Mesh;
     if (!m.isMesh) return;
     m.castShadow = m.receiveShadow = true;
+    if (!(m as THREE.InstancedMesh).isInstancedMesh && !(m as THREE.SkinnedMesh).isSkinnedMesh) {
+      const fill = new THREE.Mesh(m.geometry, poche);
+      fill.visible = false;
+      fill.raycast = () => {}; // never picked when placing room labels
+      fills.push([m, fill]);
+    }
     // show inner faces when the model is sliced open with the cut slider
     (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => {
+      mats.add(x);
       x.side = THREE.DoubleSide;
       // only the house is sliced — labels and the lawn stay whole
       x.clippingPlanes = [clip];
@@ -93,8 +105,21 @@ async function loadModel(url: string, scene: THREE.Scene, clip: THREE.Plane) {
       if (std.isMeshStandardMaterial && std.metalness > 0.5 && !std.metalnessMap) std.metalness = 0.1;
     });
   });
+  // attached after the traversal so the fills are not visited themselves
+  fills.forEach(([m, f]) => m.add(f));
   scene.add(root);
-  return { root, size: new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3()) };
+  /** turn the dark section fill on while the model is cut open */
+  const setSection = (on: boolean) => {
+    mats.forEach((x) => {
+      const side = on ? THREE.FrontSide : THREE.DoubleSide;
+      if (x.side !== side) {
+        x.side = side;
+        x.needsUpdate = true;
+      }
+    });
+    fills.forEach(([, f]) => (f.visible = on));
+  };
+  return { root, setSection, size: new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3()) };
 }
 
 function buildHouse(plan: Plan, scene: THREE.Scene): Built {
@@ -411,6 +436,7 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, o
     clip: THREE.Plane;
     labels: THREE.Group;
     model: THREE.Object3D | null;
+    setSection: ((on: boolean) => void) | null;
   } | null>(null);
   const hourRef = useRef(15);
   const hooks = useRef({ onPick, cutFloor: null as number | null, cutH: null as number | null });
@@ -561,7 +587,7 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, o
     };
     loop();
 
-    api.current = { controls, camera, built, sun, hemi, scene, home, clip, labels, model: null };
+    api.current = { controls, camera, built, sun, hemi, scene, home, clip, labels, model: null, setSection: null };
     applySun(api.current, hourRef.current);
 
     // admin editor: a click without dragging picks a point on the visible (un-sliced) part of the model
@@ -596,9 +622,9 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, o
     };
     if (custom && plan.model_url) {
       loadModel(plan.model_url, scene, clip)
-        .then(({ root, size }) => {
+        .then(({ root, size, setSection }) => {
           if (cancelled) return;
-          if (api.current) api.current.model = root;
+          if (api.current) Object.assign(api.current, { model: root, setSection });
           fit(Math.max(size.x, size.z, lotW, lotD) * 1.1, size.y);
           setModelH(Math.ceil(size.y * 10) / 10);
           setGroundY(findGround(root, size));
@@ -635,8 +661,10 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, o
   // horizontal section through an uploaded model
   useEffect(() => {
     const a = api.current;
-    if (a) a.clip.constant = cutH ?? 1e6;
-  }, [cutH]);
+    if (!a) return;
+    a.clip.constant = cutH ?? 1e6;
+    a.setSection?.(cutH != null);
+  }, [cutH, loading]);
 
   useEffect(() => {
     hooks.current = { onPick, cutFloor: cutH == null ? null : cutFloor, cutH };
