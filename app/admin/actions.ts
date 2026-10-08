@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { parseCsv } from "@/lib/csv";
 import { STYLE_KEYS } from "@/lib/format";
 import { parseHotspots } from "@/lib/hotspots";
+import { parseModelConfig } from "@/lib/model-config";
 import type { Hotspot } from "@/lib/types";
 import { serverClient } from "@/lib/supabase/server";
 
@@ -109,6 +110,12 @@ export async function savePlan(_prev: PlanFormState | null, fd: FormData): Promi
   } catch {
     return { error: "ข้อมูลจุดอธิบายบนรูปไม่ถูกต้อง" };
   }
+  let modelConfig = null;
+  try {
+    modelConfig = parseModelConfig(JSON.parse(String(fd.get("model_config") || "null")));
+  } catch {
+    return { error: "ข้อมูลการตั้งค่าโมเดล 3D ไม่ถูกต้อง" };
+  }
   const image = text("image", 500) ?? gallery[0];
   if (!image) return { error: "กรุณาอัปโหลดรูปหลักอย่างน้อย 1 รูป" };
 
@@ -138,6 +145,7 @@ export async function savePlan(_prev: PlanFormState | null, fd: FormData): Promi
     gallery: gallery.includes(image) ? gallery : [image, ...gallery],
     panorama: text("panorama", 500),
     model_url: text("model_url", 500),
+    model_config: text("model_url", 500) ? modelConfig : null,
     section_image: text("section_image", 500),
     floorplan_images: floorplans,
     hotspots,

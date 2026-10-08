@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { deletePlan, importBoq, savePlan, type BoqImportState, type PlanFormState } from "@/app/admin/actions";
 import { Icon } from "@/components/Icon";
 import { browserClient } from "@/lib/supabase/browser";
@@ -10,8 +10,9 @@ import { uploadImage as upload } from "@/lib/upload";
 import { DEFAULT_HOTSPOTS } from "@/lib/hotspots";
 import { PLAN_STYLES, STYLE_LABEL } from "@/lib/format";
 import { autofillPlan } from "@/lib/plan-autofill";
-import type { Hotspot, Plan, PlanStyle } from "@/lib/types";
+import type { Hotspot, ModelConfig, Plan, PlanStyle } from "@/lib/types";
 import { HotspotEditor } from "./HotspotEditor";
+import { ModelSetup } from "./ModelSetup";
 
 const FEATURES = [
   ["tour360", "มีทัวร์ 360° / โมเดล 3D"],
@@ -51,6 +52,13 @@ function Text({ name, label, value, required, placeholder, hint }: { name: strin
   );
 }
 
+const PREVIEW_DEFAULTS: Plan = {
+  id: "new", code: "NEW", name_en: "", name_th: "", series: null, style: "modern", storeys: 2, area_sqm: 200, floor_areas: [110, 90],
+  bedrooms: 3, bathrooms: 3, parking: 2, land_width: null, land_depth: null, min_land_sqwa: null, build_cost_min: 0, build_cost_max: 0,
+  price: 0, price_original: null, badge: null, tagline: null, description: null, image: "", gallery: [], panorama: null, model_url: null,
+  section_image: null, floorplan_images: [], hotspots: null, model_config: null, features: [], pages_arch: null, pages_struct: null, pages_mep: null,
+};
+
 const AUTO_DRIVERS = ["style", "storeys", "area_sqm", "bedrooms", "bathrooms", "parking"];
 
 export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & { is_published?: boolean; sort_order?: number }; boqCount?: number; codes?: string[] }) {
@@ -66,6 +74,7 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
   const [cover, setCover] = useState<string>(plan?.image ?? "");
   const [panorama, setPanorama] = useState<string>(plan?.panorama ?? "");
   const [modelUrl, setModelUrl] = useState<string>(plan?.model_url ?? "");
+  const [modelConfig, setModelConfig] = useState<ModelConfig | null>(plan?.model_config ?? null);
   const [busy, setBusy] = useState<string | null>(null);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
   const [hotspots, setHotspots] = useState<Hotspot[]>(plan ? plan.hotspots ?? DEFAULT_HOTSPOTS : []);
@@ -130,6 +139,7 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
     setUploadErr(null);
     setBusy(`กำลังอัปโหลดโมเดล 3D (${(file.size / 1024 / 1024).toFixed(1)} MB)...`);
     try {
+      setModelConfig(null); // cuts and labels belong to the previous file
       setModelUrl(await uploadModel(file, (codeRef.current?.value || "new").toUpperCase().replace(/[^A-Z0-9-]/g, "")));
     } catch (e) {
       setUploadErr(`อัปโหลดโมเดลไม่สำเร็จ: ${(e as Error).message}`);
@@ -137,6 +147,11 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
       setBusy(null);
     }
   };
+  // stable plan object for the 3D set-up preview (re-created only when the file or storey count changes)
+  const previewPlan = useMemo<Plan | null>(
+    () => (modelUrl ? { ...(plan ?? PREVIEW_DEFAULTS), model_url: modelUrl, storeys: floors, model_config: null } : null),
+    [modelUrl, floors, plan],
+  );
   const remove = (url: string) => {
     setGallery((g) => g.filter((x) => x !== url));
     if (cover === url) setCover(gallery.find((x) => x !== url) ?? "");
@@ -177,6 +192,7 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
         <input type="hidden" name="gallery" value={JSON.stringify(gallery)} />
         <input type="hidden" name="panorama" value={panorama} />
         <input type="hidden" name="model_url" value={modelUrl} />
+        <input type="hidden" name="model_config" value={modelConfig ? JSON.stringify(modelConfig) : ""} />
         <input type="hidden" name="section_image" value={section} />
         <input type="hidden" name="hotspots" value={JSON.stringify(hotspots.filter((h) => h.title.trim()))} />
         <input type="hidden" name="floorplan_images" value={JSON.stringify(floorplans.slice(0, floors))} />
@@ -349,8 +365,9 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
               <label className="btn btn-ghost btn-sm cursor-pointer"><Icon name="upload_file" /> {modelUrl ? "เปลี่ยนไฟล์" : "อัปโหลด .glb"}
                 <input type="file" accept=".glb,model/gltf-binary" className="sr-only" onChange={(e) => { onModel(e.target.files?.[0]); e.target.value = ""; }} />
               </label>
-              {modelUrl && <button type="button" onClick={() => setModelUrl("")} className="text-[12px] text-danger hover:underline">ลบโมเดล (กลับไปใช้แบบจำลอง)</button>}
+              {modelUrl && <button type="button" onClick={() => { setModelUrl(""); setModelConfig(null); }} className="text-[12px] text-danger hover:underline">ลบโมเดล (กลับไปใช้แบบจำลอง)</button>}
             </div>
+            {previewPlan && <ModelSetup plan={previewPlan} value={modelConfig} onChange={setModelConfig} />}
           </div>
           {busy && <p className="mt-3 flex items-center gap-2 text-[13px] text-bronze-dark"><Icon name="progress_activity" className="animate-spin" /> {busy}</p>}
           {uploadErr && <p className="mt-3 text-[13px] text-danger">{uploadErr}</p>}

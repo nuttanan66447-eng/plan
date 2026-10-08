@@ -11,6 +11,22 @@ export interface Hotspot {
   body: string;
 }
 
+/** A room label placed on an uploaded 3D model (model metres, after centring). */
+export interface ModelRoom {
+  floor: number;
+  x: number;
+  y: number;
+  z: number;
+  th: string;
+  en: string;
+}
+
+/** Admin settings for an uploaded .glb. cuts[i] = slice height (m above the model's lowest point) for storey i. */
+export interface ModelConfig {
+  cuts: (number | null)[];
+  rooms: ModelRoom[];
+}
+
 export interface Plan {
   id: string;
   code: string;
@@ -42,6 +58,7 @@ export interface Plan {
   floorplan_images: string[];
   /** numbered points on the cover photo; null = site defaults */
   hotspots: Hotspot[] | null;
+  model_config: ModelConfig | null;
   features: PlanFeature[];
   pages_arch: number | null;
   pages_struct: number | null;

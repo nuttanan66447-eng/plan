@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import type { Plan } from "@/lib/types";
+import type { ModelConfig, Plan } from "@/lib/types";
 import { roomLayout } from "./FloorPlan";
 import { Icon } from "./Icon";
 
@@ -61,7 +62,7 @@ function buildGround(scene: THREE.Scene, lotW: number, lotD: number) {
 }
 
 /** Load a .glb, convert to metres, centre it on the lot and rest it on the ground. */
-async function loadModel(url: string, scene: THREE.Scene) {
+async function loadModel(url: string, scene: THREE.Scene, clip: THREE.Plane) {
   const draco = new DRACOLoader().setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
   const loader = new GLTFLoader().setDRACOLoader(draco);
   const gltf = await loader.loadAsync(url);
@@ -83,10 +84,17 @@ async function loadModel(url: string, scene: THREE.Scene) {
     if (!m.isMesh) return;
     m.castShadow = m.receiveShadow = true;
     // show inner faces when the model is sliced open with the cut slider
-    (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => (x.side = THREE.DoubleSide));
+    (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => {
+      x.side = THREE.DoubleSide;
+      // only the house is sliced — labels and the lawn stay whole
+      x.clippingPlanes = [clip];
+      // some exporters mark everything fully metallic, which renders near-black without reflections
+      const std = x as THREE.MeshStandardMaterial;
+      if (std.isMeshStandardMaterial && std.metalness > 0.5 && !std.metalnessMap) std.metalness = 0.1;
+    });
   });
   scene.add(root);
-  return new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
+  return { root, size: new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3()) };
 }
 
 function buildHouse(plan: Plan, scene: THREE.Scene): Built {
@@ -268,21 +276,73 @@ function buildHouse(plan: Plan, scene: THREE.Scene): Built {
   return { floors, roof, glass, span: Math.max(lotW, lotD, top * 2) };
 }
 
-function textSprite(main: string, sub: string) {
+/** Horizontal extent of the meshes a cut at height y passes through (e.g. walls), or null. */
+function sliceBox(model: THREE.Object3D, y: number) {
+  const out = new THREE.Box3();
+  const b = new THREE.Box3();
+  model.updateMatrixWorld(true);
+  model.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh) return;
+    b.setFromObject(m);
+    if (b.min.y < y && b.max.y > y - 0.6) out.union(b);
+  });
+  return out.isEmpty() ? null : out;
+}
+
+/**
+ * Height of the ground the house stands on. Many exports include a thick site/terrain block under the house:
+ * scan upwards until a horizontal slice is clearly narrower than the whole model — that is where the house starts.
+ */
+function findGround(model: THREE.Object3D, size: THREE.Vector3) {
+  const boxes: THREE.Box3[] = [];
+  model.updateMatrixWorld(true);
+  model.traverse((o) => {
+    if ((o as THREE.Mesh).isMesh) boxes.push(new THREE.Box3().setFromObject(o));
+  });
+  const full = Math.max(size.x, size.z);
+  if (boxes.length < 2 || full <= 0) return 0;
+  for (let y = 0.2; y < size.y * 0.5; y += 0.2) {
+    const slice = new THREE.Box3();
+    for (const b of boxes) if (b.min.y < y && b.max.y > y) slice.union(b);
+    if (slice.isEmpty()) continue;
+    if (Math.max(slice.max.x - slice.min.x, slice.max.z - slice.min.z) < full * 0.75) return y <= 0.2 ? 0 : Math.round((y - 0.2) * 10) / 10;
+  }
+  return 0;
+}
+
+/** Sun position, light levels and sky for an hour of the day (Thailand, ~16°N: sun arcs east → south → west). */
+function applySun(a: { built: Built; sun: THREE.DirectionalLight; hemi: THREE.HemisphereLight; scene: THREE.Scene }, hour: number) {
+  const t = (hour - 6) / 12; // 0 at sunrise, 1 at sunset
+  const az = Math.PI * t; // east (0) → west (π)
+  const el = Math.sin(Math.PI * t) * 1.25 + 0.05;
+  const r = a.built.span * 2;
+  a.sun.position.set(Math.cos(az) * r, Math.sin(el) * r, -Math.sin(az) * r * 0.35 + r * 0.25);
+  const dusk = Math.min(1, Math.abs(t - 0.5) * 2);
+  a.sun.intensity = 0.4 + 2.2 * (1 - dusk ** 3);
+  a.sun.color.set(dusk > 0.75 ? "#ffb070" : "#fff1d6");
+  a.hemi.intensity = 0.75 + 0.55 * (1 - dusk ** 2);
+  const night = Math.max(0, dusk - 0.55) / 0.45;
+  a.built.glass.emissiveIntensity = night * night * 1.2;
+  a.built.glass.color.set(night > 0.5 ? "#2a3440" : "#7d9bb8");
+  a.scene.background = new THREE.Color(dusk > 0.8 ? "#2c3347" : "#e9eef6").lerp(new THREE.Color("#c8d6ea"), 0.3);
+}
+
+function textSprite(main: string, sub: string, active = false) {
   const c = document.createElement("canvas");
   c.width = 512;
   c.height = 160;
   const g = c.getContext("2d")!;
   const font = getComputedStyle(document.body).fontFamily;
-  g.fillStyle = "rgba(30,35,42,0.88)";
+  g.fillStyle = active ? "rgba(197,155,39,0.95)" : "rgba(30,35,42,0.88)";
   g.fillRect(0, 0, 512, 160);
-  g.fillStyle = "#c59b27";
+  g.fillStyle = active ? "#1e232a" : "#c59b27";
   g.fillRect(0, 0, 10, 160);
   g.textAlign = "center";
-  g.fillStyle = "#ffffff";
+  g.fillStyle = active ? "#1e232a" : "#ffffff";
   g.font = `600 58px ${font}`;
   g.fillText(main, 261, 78);
-  g.fillStyle = "#eec14b";
+  g.fillStyle = active ? "#1e232a" : "#eec14b";
   g.font = `600 30px ${font}`;
   g.fillText(sub, 261, 126);
   const tex = new THREE.CanvasTexture(c);
@@ -305,7 +365,22 @@ function disposeScene(scene: THREE.Scene) {
   });
 }
 
-export default function Model3D({ plan }: { plan: Plan }) {
+interface EditorHooks {
+  /** admin editor: settings to preview instead of the saved plan.model_config */
+  config?: ModelConfig | null;
+  /** admin editor: a click (not a drag) on the uploaded model, with the storey being viewed */
+  onPick?: (p: { x: number; y: number; z: number }, floor: number | null) => void;
+  /** admin editor: the cut slider moved while a storey is selected */
+  onCut?: (floor: number, height: number) => void;
+  /** admin editor: the storey being viewed changed */
+  onFloor?: (floor: number | null) => void;
+  /** admin editor: room to emphasise */
+  highlight?: number | null;
+}
+
+export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, highlight = null }: { plan: Plan } & EditorHooks) {
+  const config = draft !== undefined ? draft : plan.model_config;
+  const editing = Boolean(onPick || onCut);
   const mount = useRef<HTMLDivElement>(null);
   const api = useRef<{
     controls: OrbitControls;
@@ -316,7 +391,11 @@ export default function Model3D({ plan }: { plan: Plan }) {
     scene: THREE.Scene;
     home: THREE.Vector3;
     clip: THREE.Plane;
+    labels: THREE.Group;
+    model: THREE.Object3D | null;
   } | null>(null);
+  const hourRef = useRef(15);
+  const hooks = useRef({ onPick, cutFloor: null as number | null, cutH: null as number | null });
   const [mode, setMode] = useState<Mode>("full");
   const [auto, setAuto] = useState(true);
   const [hour, setHour] = useState(15);
@@ -327,6 +406,8 @@ export default function Model3D({ plan }: { plan: Plan }) {
   const [modelH, setModelH] = useState(0);
   const [cutH, setCutH] = useState<number | null>(null);
   const [cutFloor, setCutFloor] = useState<number | null>(null);
+  const [groundY, setGroundY] = useState(0);
+  const [focus, setFocus] = useState(20);
 
   // Slice an uploaded model through the middle of a storey (roof ≈ 0.6 of a storey on top),
   // then look down into it — mirrors the generated model's "ตัดชั้น" view.
@@ -335,18 +416,37 @@ export default function Model3D({ plan }: { plan: Plan }) {
     setCutFloor(i);
     if (!a) return;
     if (i == null) {
+      onFloor?.(null);
       setCutH(null);
       a.controls.target.set(0, modelH * 0.4, 0);
       a.camera.position.copy(a.home);
       return;
     }
-    const storeyH = Math.min(4.2, Math.max(2.6, modelH / (plan.storeys + 0.6)));
-    const y = i * storeyH + storeyH * 0.55;
+    const y = floorCut(i);
     setCutH(y);
     setAuto(false);
-    const s = a.built.span;
-    a.controls.target.set(0, i * storeyH, 0);
-    a.camera.position.set(s * 0.3, i * storeyH + s * 0.95, s * 0.55);
+    focusCut(y);
+    onFloor?.(i);
+  };
+  /** Look down into the slice at height y, framing what the cut passes through (walls), not the whole site. */
+  const focusCut = (y: number) => {
+    const a = api.current;
+    if (!a) return;
+    const floorY = Math.max(0, y - 1.3);
+    const box = a.model ? sliceBox(a.model, y) : null;
+    const c = box ? box.getCenter(new THREE.Vector3()) : new THREE.Vector3();
+    const s = box ? Math.max(8, Math.max(box.max.x - box.min.x, box.max.z - box.min.z) * 1.55) : a.built.span;
+    setFocus(s);
+    a.controls.target.set(c.x, floorY, c.z);
+    a.camera.position.set(c.x + s * 0.3, floorY + s * 0.95, c.z + s * 0.55);
+  };
+  /** slice height for storey i: the admin's setting, else a guess from the model height */
+  const floorCut = (i: number) => {
+    const set = config?.cuts?.[i];
+    if (set != null) return set;
+    // models often sit on a raised base/terrain: start counting storeys from the detected ground
+    const storeyH = Math.min(4.2, Math.max(2.6, (modelH - groundY) / (plan.storeys + 0.6)));
+    return Math.round((groundY + i * storeyH + storeyH * 0.5) * 10) / 10;
   };
 
   useEffect(() => {
@@ -363,13 +463,22 @@ export default function Model3D({ plan }: { plan: Plan }) {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.localClippingEnabled = true;
     el.appendChild(renderer.domElement);
     renderer.domElement.style.display = "block";
     renderer.domElement.style.touchAction = "none";
 
     const scene = new THREE.Scene();
+    // soft studio reflections so PBR materials from SketchUp/Revit/Blender don't render dark
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+    scene.environment = envTex;
+    scene.environmentIntensity = custom ? 0.6 : 0.35;
     const clip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6);
-    renderer.clippingPlanes = [clip];
+    const labels = new THREE.Group();
+    scene.add(labels);
     const lotW = plan.land_width ?? 20;
     const lotD = plan.land_depth ?? 24;
     const built: Built = custom
@@ -384,6 +493,9 @@ export default function Model3D({ plan }: { plan: Plan }) {
     const sun = new THREE.DirectionalLight("#fff1d6", 2.4);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
+    // avoid striped "shadow acne" on large, double-sided terrain in uploaded models
+    sun.shadow.bias = -0.0004;
+    sun.shadow.normalBias = 0.04;
     const sc = sun.shadow.camera;
     sc.left = sc.bottom = -built.span;
     sc.right = sc.top = built.span;
@@ -425,7 +537,24 @@ export default function Model3D({ plan }: { plan: Plan }) {
     };
     loop();
 
-    api.current = { controls, camera, built, sun, hemi, scene, home, clip };
+    api.current = { controls, camera, built, sun, hemi, scene, home, clip, labels, model: null };
+    applySun(api.current, hourRef.current);
+
+    // admin editor: a click without dragging picks a point on the visible (un-sliced) part of the model
+    const ray = new THREE.Raycaster();
+    let down: { x: number; y: number } | null = null;
+    const onDown = (e: PointerEvent) => (down = { x: e.clientX, y: e.clientY });
+    const onUp = (e: PointerEvent) => {
+      const h = hooks.current;
+      const model = api.current?.model;
+      if (!h.onPick || !model || !down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) return;
+      const r = renderer.domElement.getBoundingClientRect();
+      ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+      const hit = ray.intersectObject(model, true).find((x) => h.cutH == null || x.point.y <= h.cutH + 0.01);
+      if (hit) h.onPick({ x: hit.point.x, y: hit.point.y, z: hit.point.z }, h.cutFloor);
+    };
+    renderer.domElement.addEventListener("pointerdown", onDown);
+    renderer.domElement.addEventListener("pointerup", onUp);
 
     let cancelled = false;
     const fit = (span: number, height: number) => {
@@ -439,13 +568,16 @@ export default function Model3D({ plan }: { plan: Plan }) {
       sc.right = sc.top = span;
       sc.far = span * 8;
       sc.updateProjectionMatrix();
+      if (api.current) applySun(api.current, hourRef.current);
     };
     if (custom && plan.model_url) {
-      loadModel(plan.model_url, scene)
-        .then((size) => {
+      loadModel(plan.model_url, scene, clip)
+        .then(({ root, size }) => {
           if (cancelled) return;
+          if (api.current) api.current.model = root;
           fit(Math.max(size.x, size.z, lotW, lotD) * 1.1, size.y);
           setModelH(Math.ceil(size.y * 10) / 10);
+          setGroundY(findGround(root, size));
           setLoading(false);
         })
         .catch((err) => {
@@ -463,6 +595,9 @@ export default function Model3D({ plan }: { plan: Plan }) {
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
+      renderer.domElement.removeEventListener("pointerdown", onDown);
+      renderer.domElement.removeEventListener("pointerup", onUp);
+      envTex.dispose();
       ro.disconnect();
       io.disconnect();
       controls.dispose();
@@ -478,6 +613,32 @@ export default function Model3D({ plan }: { plan: Plan }) {
     const a = api.current;
     if (a) a.clip.constant = cutH ?? 1e6;
   }, [cutH]);
+
+  useEffect(() => {
+    hooks.current = { onPick, cutFloor: cutH == null ? null : cutFloor, cutH };
+  }, [onPick, cutFloor, cutH]);
+
+  // room labels for the storey being viewed
+  const rooms = config?.rooms;
+  useEffect(() => {
+    const a = api.current;
+    if (!a) return;
+    a.labels.children.forEach((c) => {
+      const sp = c as THREE.Sprite;
+      sp.material.map?.dispose();
+      sp.material.dispose();
+    });
+    a.labels.clear();
+    if (cutH == null || cutFloor == null || loading) return;
+    const scale = Math.min(1.4, Math.max(0.5, focus / 20));
+    (rooms ?? []).forEach((r, i) => {
+      if (r.floor !== cutFloor) return;
+      const sp = textSprite(r.th, r.en, i === highlight);
+      sp.scale.multiplyScalar(scale);
+      sp.position.set(r.x, Math.min(r.y + 0.5, cutH - 0.1), r.z);
+      a.labels.add(sp);
+    });
+  }, [rooms, cutH, cutFloor, highlight, loading, focus]);
 
   // floors / roof cut-away
   useEffect(() => {
@@ -503,23 +664,9 @@ export default function Model3D({ plan }: { plan: Plan }) {
     if (api.current) api.current.controls.autoRotate = auto;
   }, [auto]);
 
-  // sun position for the chosen hour (Thailand, ~16°N: sun arcs east → south → west)
   useEffect(() => {
-    const a = api.current;
-    if (!a) return;
-    const t = (hour - 6) / 12; // 0 at sunrise, 1 at sunset
-    const az = Math.PI * t; // east (0) → west (π)
-    const el = Math.sin(Math.PI * t) * 1.25 + 0.05;
-    const r = a.built.span * 2;
-    a.sun.position.set(Math.cos(az) * r, Math.sin(el) * r, -Math.sin(az) * r * 0.35 + r * 0.25);
-    const dusk = Math.min(1, Math.abs(t - 0.5) * 2);
-    a.sun.intensity = 0.4 + 2.2 * (1 - dusk ** 3);
-    a.sun.color.set(dusk > 0.75 ? "#ffb070" : "#fff1d6");
-    a.hemi.intensity = 0.75 + 0.55 * (1 - dusk ** 2);
-    const night = Math.max(0, dusk - 0.55) / 0.45;
-    a.built.glass.emissiveIntensity = night * night * 1.2;
-    a.built.glass.color.set(night > 0.5 ? "#2a3440" : "#7d9bb8");
-    a.scene.background = new THREE.Color(dusk > 0.8 ? "#2c3347" : "#e9eef6").lerp(new THREE.Color("#c8d6ea"), 0.3);
+    hourRef.current = hour;
+    if (api.current) applySun(api.current, hour);
   }, [hour]);
 
   const zoom = (k: number) => {
@@ -535,6 +682,7 @@ export default function Model3D({ plan }: { plan: Plan }) {
     setMode("full");
     setCutH(null);
     setCutFloor(null);
+    onFloor?.(null);
     a.camera.position.copy(a.home);
     setAuto(true);
   };
@@ -561,23 +709,30 @@ export default function Model3D({ plan }: { plan: Plan }) {
       {custom && !loadError ? (
         <div className="absolute bottom-3 left-3 flex max-w-[calc(100%-10.5rem)] flex-wrap items-center gap-1 bg-ink/90 p-1 text-[11.5px] text-white">
           <span className="hidden px-2 text-white/60 sm:inline">มุมมอง:</span>
-          <button onClick={() => cutAtFloor(null)} disabled={loading} className={`px-2.5 py-1 ${cutH == null ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ทั้งหลัง</button>
+          <button type="button" onClick={() => cutAtFloor(null)} disabled={loading} className={`px-2.5 py-1 ${cutH == null ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ทั้งหลัง</button>
           {Array.from({ length: plan.storeys }, (_, i) => (
-            <button key={i} onClick={() => cutAtFloor(i)} disabled={loading} className={`px-2.5 py-1 ${cutFloor === i && cutH != null ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ตัดชั้น {i + 1}</button>
+            <button type="button" key={i} onClick={() => cutAtFloor(i)} disabled={loading} className={`px-2.5 py-1 ${cutFloor === i && cutH != null ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ตัดชั้น {i + 1}</button>
           ))}
           <span className="flex items-center gap-1.5 px-2">
             <label htmlFor="cut-h" className="whitespace-nowrap text-white/70">{cutH == null ? "ปรับเอง" : `${cutH.toFixed(1)} ม.`}</label>
             <input id="cut-h" type="range" min={0.3} max={Math.max(0.5, modelH)} step={0.1} value={cutH ?? Math.max(0.5, modelH)}
-              onChange={(e) => { const v = Number(e.target.value); setCutFloor(null); setCutH(v >= modelH ? null : v); setAuto(false); }}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setAuto(false);
+                if (editing && cutFloor != null && cutH != null) { setCutH(v); onCut?.(cutFloor, v); return; }
+                setCutFloor(null);
+                setCutH(v >= modelH ? null : v);
+              }}
+              onPointerUp={() => { if (editing && cutFloor != null && cutH != null) focusCut(cutH); }}
               disabled={loading} aria-label="ความสูงที่ตัด" className="w-20 accent-[#c59b27] sm:w-28" />
           </span>
         </div>
       ) : (
         <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-1 bg-ink/90 p-1 text-[11.5px] text-white">
           <span className="hidden px-2 text-white/60 sm:inline">มุมมอง:</span>
-          <button onClick={() => setMode("full")} className={`px-2.5 py-1 ${mode === "full" ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ทั้งหลัง</button>
+          <button type="button" onClick={() => setMode("full")} className={`px-2.5 py-1 ${mode === "full" ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ทั้งหลัง</button>
           {Array.from({ length: plan.storeys }, (_, i) => (
-            <button key={i} onClick={() => { setMode(i); setAuto(false); }} className={`px-2.5 py-1 ${mode === i ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ตัดชั้น {i + 1}</button>
+            <button type="button" key={i} onClick={() => { setMode(i); setAuto(false); }} className={`px-2.5 py-1 ${mode === i ? "bg-bronze font-bold text-ink" : "hover:bg-white/10"}`}>ตัดชั้น {i + 1}</button>
           ))}
         </div>
       )}
@@ -590,10 +745,10 @@ export default function Model3D({ plan }: { plan: Plan }) {
         </div>
       )}
       <div className="absolute bottom-3 right-3 flex bg-ink/90 text-white">
-        <button onClick={() => zoom(0.8)} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ซูมเข้า"><Icon name="zoom_in" /></button>
-        <button onClick={() => zoom(1.25)} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ซูมออก"><Icon name="zoom_out" /></button>
-        <button onClick={() => setAuto((v) => !v)} className={`grid h-9 w-9 place-items-center ${auto ? "bg-bronze text-ink" : "hover:bg-white/10"}`} aria-label={auto ? "หยุดหมุนอัตโนมัติ" : "หมุนอัตโนมัติ"} aria-pressed={auto}><Icon name="3d_rotation" /></button>
-        <button onClick={reset} className="grid h-9 w-9 place-items-center text-bronze hover:bg-white/10" aria-label="รีเซ็ตมุมมอง"><Icon name="restart_alt" /></button>
+        <button type="button" onClick={() => zoom(0.8)} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ซูมเข้า"><Icon name="zoom_in" /></button>
+        <button type="button" onClick={() => zoom(1.25)} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ซูมออก"><Icon name="zoom_out" /></button>
+        <button type="button" onClick={() => setAuto((v) => !v)} className={`grid h-9 w-9 place-items-center ${auto ? "bg-bronze text-ink" : "hover:bg-white/10"}`} aria-label={auto ? "หยุดหมุนอัตโนมัติ" : "หมุนอัตโนมัติ"} aria-pressed={auto}><Icon name="3d_rotation" /></button>
+        <button type="button" onClick={reset} className="grid h-9 w-9 place-items-center text-bronze hover:bg-white/10" aria-label="รีเซ็ตมุมมอง"><Icon name="restart_alt" /></button>
       </div>
     </div>
   );
