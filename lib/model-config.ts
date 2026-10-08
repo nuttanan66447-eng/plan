@@ -56,6 +56,10 @@ export function parseModelConfig(raw: unknown): ModelConfig | null {
     const t = vec(o?.t);
     return p && t ? { p, t } : null;
   });
-  if (!cuts.some((c) => c != null) && !rooms.length && !views.some(Boolean)) return null;
-  return { cuts, rooms, views };
+  const h = r.home && typeof r.home === "object" ? (r.home as Record<string, unknown>) : null;
+  const hp = vec(h?.p);
+  const ht = vec(h?.t);
+  const home = hp && ht ? { p: hp, t: ht } : null;
+  if (!cuts.some((c) => c != null) && !rooms.length && !views.some(Boolean) && !home) return null;
+  return { cuts, rooms, views, home };
 }

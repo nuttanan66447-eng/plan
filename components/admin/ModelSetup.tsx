@@ -24,8 +24,10 @@ export function ModelSetup({ plan, value, onChange }: { plan: Plan; value: Model
   const [moving, setMoving] = useState<number | null>(null);
   const [hint, setHint] = useState<string | null>(null);
 
-  const save = (next: ModelConfig) => onChange(next.rooms.length || next.cuts.some((c) => c != null) || next.views?.some(Boolean) ? next : null);
-  const setView = (f: number, v: ModelView | null) => {
+  const save = (next: ModelConfig) =>
+    onChange(next.rooms.length || next.cuts.some((c) => c != null) || next.views?.some(Boolean) || next.home ? next : null);
+  const setView = (f: number | null, v: ModelView | null) => {
+    if (f == null) return save({ ...cfg, home: v });
     const views = [...(cfg.views ?? [])];
     while (views.length <= f) views.push(null);
     views[f] = v;
@@ -74,7 +76,7 @@ export function ModelSetup({ plan, value, onChange }: { plan: Plan; value: Model
         <li><b>1.</b> กด <b>ตัดชั้น 1</b> ใต้ภาพ</li>
         <li><b>2.</b> เลื่อนแถบความสูงให้ตัดผ่านกลางผนัง (เหนือพื้นราว 1.2–1.5 ม.)</li>
         <li><b>3.</b> คลิกบนพื้นของแต่ละห้องเพื่อวางป้าย แล้วตั้งชื่อด้านขวา</li>
-        <li><b>4.</b> หมุน/ซูมให้ได้มุมที่ชอบ แล้วกด <b>ใช้มุมนี้</b> (มุมขวาล่างของภาพ)</li>
+        <li><b>4.</b> หมุน/ซูมให้ได้มุมที่ชอบ แล้วกด <b>ใช้มุมนี้</b> (มุมขวาล่างของภาพ) — ทำได้ทั้งมุม “ทั้งหลัง” และแต่ละชั้น</li>
       </ol>
       <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div>
@@ -82,7 +84,10 @@ export function ModelSetup({ plan, value, onChange }: { plan: Plan; value: Model
             <Model3D plan={plan} config={cfg} highlight={selected}
               onPick={onPick}
               onCut={(f, h) => setCut(f, h)}
-              onView={(f, v) => { setView(f, v); setHint(`บันทึกมุมกล้องของชั้น ${f + 1} แล้ว — ลูกค้าจะเห็นมุมนี้เมื่อกดตัดชั้น ${f + 1}`); }}
+              onView={(f, v) => {
+                setView(f, v);
+                setHint(f == null ? "บันทึกมุมกล้องทั้งหลังแล้ว — ลูกค้าจะเห็นมุมนี้เมื่อเปิดโมเดล" : `บันทึกมุมกล้องของชั้น ${f + 1} แล้ว — ลูกค้าจะเห็นมุมนี้เมื่อกดตัดชั้น ${f + 1}`);
+              }}
               onFloor={(f) => { setFloor(f); setSelected(null); setMoving(null); setHint(null); }} />
           </div>
           {(hint || moving != null) && (
@@ -97,6 +102,12 @@ export function ModelSetup({ plan, value, onChange }: { plan: Plan; value: Model
           <div>
             <p className="field-label">ความสูงที่ตัดแต่ละชั้น (ม. จากจุดต่ำสุดของโมเดล)</p>
             <ul className="mt-1.5 divide-y divide-hairline border border-hairline">
+              <li className={`flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 py-2 ${floor == null ? "bg-bronze-wash" : ""}`}>
+                <span className="font-semibold">ทั้งหลัง</span>
+                <span className="text-[11.5px] text-muted">
+                  มุมกล้อง: {cfg.home ? <>บันทึกแล้ว <button type="button" onClick={() => setView(null, null)} className="underline hover:text-danger">ล้าง</button></> : "อัตโนมัติ (หมุนรอบบ้าน) — กด ทั้งหลัง แล้วจัดมุม กด ใช้มุมนี้"}
+                </span>
+              </li>
               {Array.from({ length: plan.storeys }, (_, f) => (
                 <li key={f} className={`flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 py-2 ${floor === f ? "bg-bronze-wash" : ""}`}>
                   <span className="font-semibold">ชั้น {f + 1}</span>

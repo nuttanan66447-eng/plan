@@ -84,6 +84,7 @@ async function loadModel(url: string, scene: THREE.Scene, clip: THREE.Plane) {
   const poche = new THREE.MeshBasicMaterial({ color: "#2a2f36", side: THREE.BackSide, clippingPlanes: [clip] });
   const fills: [THREE.Mesh, THREE.Mesh][] = [];
   const mats = new Set<THREE.Material>();
+  const glass = new Set<THREE.MeshStandardMaterial>();
   root.traverse((o) => {
     const m = o as THREE.Mesh;
     if (!m.isMesh) return;
@@ -97,6 +98,9 @@ async function loadModel(url: string, scene: THREE.Scene, clip: THREE.Plane) {
     // show inner faces when the model is sliced open with the cut slider
     (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => {
       mats.add(x);
+      // windows glow warm at night: anything see-through or named like glass
+      const g = x as THREE.MeshPhysicalMaterial;
+      if (g.isMeshStandardMaterial && (x.transparent || x.opacity < 0.95 || g.transmission > 0 || /glass|glaz|window|กระจก|หน้าต่าง/i.test(`${x.name} ${m.name}`))) glass.add(g);
       x.side = THREE.DoubleSide;
       // only the house is sliced — labels and the lawn stay whole
       x.clippingPlanes = [clip];
@@ -119,7 +123,7 @@ async function loadModel(url: string, scene: THREE.Scene, clip: THREE.Plane) {
     });
     fills.forEach(([, f]) => (f.visible = on));
   };
-  return { root, setSection, size: new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3()) };
+  return { root, setSection, glass: [...glass], size: new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3()) };
 }
 
 function buildHouse(plan: Plan, scene: THREE.Scene): Built {
@@ -349,7 +353,12 @@ function findGround(model: THREE.Object3D, size: THREE.Vector3) {
 }
 
 /** Sun position, light levels and sky for an hour of the day (Thailand, ~16°N: sun arcs east → south → west). */
-function applySun(a: { built: Built; sun: THREE.DirectionalLight; hemi: THREE.HemisphereLight; scene: THREE.Scene }, hour: number) {
+interface NightLights {
+  glass: THREE.MeshStandardMaterial[];
+  lamps: THREE.PointLight[];
+}
+
+function applySun(a: { built: Built; sun: THREE.DirectionalLight; hemi: THREE.HemisphereLight; scene: THREE.Scene; night?: NightLights | null }, hour: number) {
   const t = (hour - 6) / 12; // 0 at sunrise, 1 at sunset
   const az = Math.PI * t; // east (0) → west (π)
   const el = Math.sin(Math.PI * t) * 1.25 + 0.05;
@@ -362,6 +371,17 @@ function applySun(a: { built: Built; sun: THREE.DirectionalLight; hemi: THREE.He
   const night = Math.max(0, dusk - 0.55) / 0.45;
   a.built.glass.emissiveIntensity = night * night * 1.2;
   a.built.glass.color.set(night > 0.5 ? "#2a3440" : "#7d9bb8");
+  // uploaded model: warm windows and interior lamps after dusk
+  a.night?.glass.forEach((g) => {
+    // see-through glass would hide most of the glow, so it turns more opaque as it lights up
+    g.userData.opacity ??= g.opacity;
+    g.opacity = Math.max(g.userData.opacity, 0.92 * night);
+    g.emissive.set("#ffa63d");
+    g.emissiveIntensity = night * night * 2.2;
+  });
+  a.night?.lamps.forEach((l) => (l.intensity = night * l.userData.max));
+  // ambient reflections fade after dusk so lit windows and lamps stand out
+  a.scene.environmentIntensity = (a.scene.userData.envBase ?? 0.5) * (1 - 0.85 * night);
   a.scene.background = new THREE.Color(dusk > 0.8 ? "#2c3347" : "#e9eef6").lerp(new THREE.Color("#c8d6ea"), 0.3);
 }
 
@@ -418,7 +438,7 @@ interface EditorHooks {
   /** admin editor: room to emphasise */
   highlight?: number | null;
   /** admin editor: save the current camera as the opening view of a storey's cut */
-  onView?: (floor: number, view: ModelView) => void;
+  onView?: (floor: number | null, view: ModelView) => void;
 }
 
 export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, onView, highlight = null }: { plan: Plan } & EditorHooks) {
@@ -433,12 +453,16 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, o
     hemi: THREE.HemisphereLight;
     scene: THREE.Scene;
     home: THREE.Vector3;
+    homeT: THREE.Vector3;
+    night: NightLights | null;
     clip: THREE.Plane;
     labels: THREE.Group;
     model: THREE.Object3D | null;
     setSection: ((on: boolean) => void) | null;
   } | null>(null);
   const hourRef = useRef(15);
+  const configRef = useRef(config);
+  configRef.current = config;
   const hooks = useRef({ onPick, cutFloor: null as number | null, cutH: null as number | null });
   const [mode, setMode] = useState<Mode>("full");
   const [auto, setAuto] = useState(true);
@@ -461,7 +485,7 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, o
     if (i == null) {
       onFloor?.(null);
       setCutH(null);
-      a.controls.target.set(0, modelH * 0.4, 0);
+      a.controls.target.copy(a.homeT);
       a.camera.position.copy(a.home);
       return;
     }
@@ -525,7 +549,8 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, o
     const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     pmrem.dispose();
     scene.environment = envTex;
-    scene.environmentIntensity = custom ? 0.6 : 0.35;
+    scene.userData.envBase = custom ? 0.6 : 0.35;
+    scene.environmentIntensity = scene.userData.envBase;
     const clip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6);
     const labels = new THREE.Group();
     scene.add(labels);
@@ -587,7 +612,7 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, o
     };
     loop();
 
-    api.current = { controls, camera, built, sun, hemi, scene, home, clip, labels, model: null, setSection: null };
+    api.current = { controls, camera, built, sun, hemi, scene, home, homeT: new THREE.Vector3(0, 3, 0), night: null, clip, labels, model: null, setSection: null };
     applySun(api.current, hourRef.current);
 
     // admin editor: a click without dragging picks a point on the visible (un-sliced) part of the model
@@ -612,6 +637,7 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, o
       home.set(span * 0.85, Math.max(span * 0.55, height * 1.4), span * 1.05);
       camera.position.copy(home);
       controls.target.set(0, height * 0.4, 0);
+      api.current?.homeT.copy(controls.target);
       controls.minDistance = span * 0.2;
       controls.maxDistance = span * 4;
       sc.left = sc.bottom = -span;
@@ -622,12 +648,33 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, o
     };
     if (custom && plan.model_url) {
       loadModel(plan.model_url, scene, clip)
-        .then(({ root, size, setSection }) => {
+        .then(({ root, size, setSection, glass }) => {
           if (cancelled) return;
-          if (api.current) Object.assign(api.current, { model: root, setSection });
+          const ground = findGround(root, size);
+          // warm interior lamps, one per storey near the middle of the house (off by day)
+          const house = sliceBox(root, ground + 1.5);
+          const c = house ? house.getCenter(new THREE.Vector3()) : new THREE.Vector3();
+          const reach = house ? Math.max(house.max.x - house.min.x, house.max.z - house.min.z) : 12;
+          const lamps = Array.from({ length: Math.max(1, plan.storeys) }, (_, i) => {
+            const l = new THREE.PointLight("#ffc77a", 0, reach * 0.95, 1.4);
+            l.position.set(c.x, ground + 1.9 + i * 3.2, c.z);
+            l.userData.max = 18 + reach * 2.5;
+            scene.add(l);
+            return l;
+          });
+          if (api.current) Object.assign(api.current, { model: root, setSection, night: { glass, lamps } });
           fit(Math.max(size.x, size.z, lotW, lotD) * 1.1, size.y);
+          // the admin's saved whole-house view
+          const saved = configRef.current?.home;
+          if (saved && api.current) {
+            home.set(...saved.p);
+            api.current.homeT.set(...saved.t);
+            camera.position.copy(home);
+            controls.target.copy(api.current.homeT);
+            setAuto(false);
+          }
           setModelH(Math.ceil(size.y * 10) / 10);
-          setGroundY(findGround(root, size));
+          setGroundY(ground);
           setLoading(false);
         })
         .catch((err) => {
@@ -738,7 +785,8 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, o
     setCutFloor(null);
     onFloor?.(null);
     a.camera.position.copy(a.home);
-    setAuto(true);
+    if (custom) a.controls.target.copy(a.homeT);
+    setAuto(!config?.home);
   };
 
   if (failed) {
@@ -801,9 +849,21 @@ export default function Model3D({ plan, config: draft, onPick, onCut, onFloor, o
       <div className="absolute bottom-3 right-3 flex bg-ink/90 text-white">
         <button type="button" onClick={() => zoom(0.8)} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ซูมเข้า"><Icon name="zoom_in" /></button>
         <button type="button" onClick={() => zoom(1.25)} className="grid h-9 w-9 place-items-center hover:bg-white/10" aria-label="ซูมออก"><Icon name="zoom_out" /></button>
-        {onView && cutFloor != null && cutH != null && (
-          <button type="button" title="ใช้มุมกล้องนี้เป็นมุมเริ่มต้นของชั้นนี้" aria-label="บันทึกมุมกล้องของชั้นนี้"
-            onClick={() => { const a = api.current; if (a) onView(cutFloor, { p: a.camera.position.toArray(), t: a.controls.target.toArray() }); }}
+        {onView && !loading && (
+          <button type="button" title={cutH != null && cutFloor != null ? "ใช้มุมกล้องนี้เป็นมุมเริ่มต้นของชั้นนี้" : "ใช้มุมกล้องนี้เป็นมุมเริ่มต้นของมุมมองทั้งหลัง"}
+            aria-label={cutH != null && cutFloor != null ? "บันทึกมุมกล้องของชั้นนี้" : "บันทึกมุมกล้องทั้งหลัง"}
+            onClick={() => {
+              const a = api.current;
+              if (!a) return;
+              setAuto(false);
+              const v: ModelView = { p: a.camera.position.toArray(), t: a.controls.target.toArray() };
+              if (cutH != null && cutFloor != null) onView(cutFloor, v);
+              else if (cutH == null) {
+                a.home.copy(a.camera.position);
+                a.homeT.copy(a.controls.target);
+                onView(null, v);
+              }
+            }}
             className="flex h-9 items-center gap-1 bg-bronze px-2.5 text-[11.5px] font-bold text-ink hover:bg-bronze-light"><Icon name="photo_camera" /> ใช้มุมนี้</button>
         )}
         <button type="button" onClick={() => setAuto((v) => !v)} className={`grid h-9 w-9 place-items-center ${auto ? "bg-bronze text-ink" : "hover:bg-white/10"}`} aria-label={auto ? "หยุดหมุนอัตโนมัติ" : "หมุนอัตโนมัติ"} aria-pressed={auto}><Icon name="3d_rotation" /></button>

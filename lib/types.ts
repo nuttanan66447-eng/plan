@@ -27,6 +27,8 @@ export interface ModelConfig {
   rooms: ModelRoom[];
   /** saved camera per storey: position p and look-at target t, model metres */
   views?: (ModelView | null)[];
+  /** saved camera for the whole-house view */
+  home?: ModelView | null;
 }
 
 export interface ModelView {
