@@ -59,6 +59,9 @@ const PREVIEW_DEFAULTS: Plan = {
   section_image: null, floorplan_images: [], hotspots: null, model_config: null, features: [], pages_arch: null, pages_struct: null, pages_mep: null,
 };
 
+/** numbers that follow directly from the spec; recalculated when an existing plan's spec changes */
+const DERIVED = ["floor_areas", "land_width", "land_depth", "min_land_sqwa", "build_cost_min", "build_cost_max", "price", "price_original", "pages_arch", "pages_struct", "pages_mep"];
+
 const AUTO_DRIVERS = ["style", "storeys", "area_sqm", "bedrooms", "bathrooms", "parking"];
 
 export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & { is_published?: boolean; sort_order?: number }; boqCount?: number; codes?: string[] }) {
@@ -83,7 +86,13 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
   const formRef = useRef<HTMLFormElement>(null);
 
   /** Fills every empty (or previously auto-filled) field from style + size. Fields typed by hand are never replaced. */
-  const autofill = () => {
+  // what the generator produced for the previous spec — text still equal to it was never edited by hand
+  const baseline = useRef<Record<string, string>>({});
+  /**
+   * recalc (editing an existing plan): numbers that follow from storeys/area (floor split, land, budget,
+   * price, sheet counts) are recalculated even when filled in; hand-written texts are kept.
+   */
+  const autofill = (recalc = false) => {
     const form = formRef.current;
     if (!form) return 0;
     const field = (k: string) => form.elements.namedItem(k) as HTMLInputElement | null;
@@ -99,16 +108,31 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
     let n = 0;
     for (const [k, v] of Object.entries(values)) {
       const el = field(k);
-      if (!el || (k === "code" && plan) || (el.value.trim() && el.dataset.auto !== "1") || el.value === v) continue;
+      if (!el || (k === "code" && plan) || el.value === v) continue;
+      const replaceable = !el.value.trim() || el.dataset.auto === "1" || (recalc && DERIVED.includes(k)) || el.value === baseline.current[k];
+      if (!replaceable) continue;
       el.value = v;
       el.dataset.auto = "1";
       n++;
     }
+    baseline.current = values;
     return n;
+  };
+  const snapshot = () => {
+    // remember what the generator would say for the plan as saved, without touching the form
+    const form = formRef.current;
+    if (!form) return;
+    const field = (k: string) => (form.elements.namedItem(k) as HTMLInputElement | null)?.value ?? "";
+    baseline.current = autofillPlan(
+      { style: field("style") as PlanStyle, storeys: Number(field("storeys")) || 1, area: Number(field("area_sqm")) || null,
+        bedrooms: Number(field("bedrooms")) || null, bathrooms: Number(field("bathrooms")) || null, parking: field("parking") ? Number(field("parking")) : null },
+      codes.filter((c) => c !== plan?.code),
+    );
   };
   useEffect(() => {
     // a brand-new plan starts fully pre-filled; changing style or size refreshes the auto-filled fields
     if (!plan) autofill();
+    else snapshot();
   }, []);
 
   const onFiles = async (files: FileList | null, kind: "gallery" | "panorama" | "section" | number) => {
@@ -178,7 +202,10 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
         onChange={(e) => {
           const t = e.target as unknown as HTMLInputElement;
           if (t.name === "storeys") setFloors(Math.min(4, Math.max(1, Number(t.value) || 1)));
-          if (!plan && AUTO_DRIVERS.includes(t.name)) autofill();
+          if (AUTO_DRIVERS.includes(t.name)) {
+            const n = autofill(Boolean(plan));
+            if (plan) setAutoMsg(n ? `คำนวณใหม่ ${n} ช่อง (สีครีม) — ตรวจสอบแล้วกดบันทึก` : null);
+          }
         }}
         onSubmit={(e) => {
           // submit through a transition so a validation error doesn't reset the whole form
@@ -202,12 +229,12 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
             <div>
               <h2 className="text-[16px] font-bold">1. ข้อมูลหลัก</h2>
               <p className="text-[12px] text-muted">
-                {plan ? "กดปุ่มด้านขวาเพื่อเติมช่องที่ยังว่างจากสไตล์และสเปก" : "ระบบกรอกให้อัตโนมัติจาก สไตล์ + จำนวนชั้น + พื้นที่ใช้สอย (หัวข้อ 2) — ช่องสีครีมคือค่าที่ระบบเติมให้ แก้ได้ทุกช่อง ช่องที่พิมพ์เองจะไม่ถูกเปลี่ยน"}
+                {plan ? "เปลี่ยนสไตล์ จำนวนชั้น พื้นที่ หรือจำนวนห้อง แล้วระบบคำนวณพื้นที่แต่ละชั้น ขนาดที่ดิน งบก่อสร้าง และราคาให้ใหม่ (ช่องสีครีม) — ชื่อและคำบรรยายที่แก้เองจะไม่ถูกเปลี่ยน" : "ระบบกรอกให้อัตโนมัติจาก สไตล์ + จำนวนชั้น + พื้นที่ใช้สอย (หัวข้อ 2) — ช่องสีครีมคือค่าที่ระบบเติมให้ แก้ได้ทุกช่อง ช่องที่พิมพ์เองจะไม่ถูกเปลี่ยน"}
               </p>
             </div>
             <div className="flex items-center gap-2">
               {autoMsg && <span className="text-[12px] text-success" role="status">{autoMsg}</span>}
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { const n = autofill(); setAutoMsg(n ? `เติม ${n} ช่องแล้ว` : "ไม่มีช่องว่างให้เติม"); }}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { const n = autofill(Boolean(plan)); setAutoMsg(n ? `${plan ? "คำนวณใหม่" : "เติม"} ${n} ช่องแล้ว (สีครีม)` : "ข้อมูลตรงกับสเปกแล้ว"); }}>
                 <Icon name="auto_fix_high" /> เติมอัตโนมัติ
               </button>
             </div>
