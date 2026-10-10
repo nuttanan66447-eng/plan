@@ -429,7 +429,7 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
 
       {plan ? <BoqImport planId={plan.id} code={plan.code} count={boqCount} /> : (
         <section className="card p-5">
-          <h2 className="text-[16px] font-bold">4. รายการ BOQ (ไม่บังคับ)</h2>
+          <h2 className="text-[16px] font-bold">4. ตาราง BOQ บนเว็บ (ตัวอย่างให้ลูกค้าดู — ไม่บังคับ)</h2>
           <p className="mt-2 flex items-start gap-2 bg-wash p-3 text-[13px] text-ink-3">
             <Icon name="info" className="mt-0.5 text-bronze-dark" />
             <span>กด <b>เพิ่มแบบบ้าน</b> ก่อน ระบบจะเปิดหน้าแก้ไขแบบนี้ให้อัตโนมัติ แล้วนำเข้าไฟล์ BOQ ได้ทันทีในหัวข้อนี้ •{" "}
@@ -498,8 +498,9 @@ function BoqImport({ planId, code, count }: { planId: string; code: string; coun
   return (
     <form action={action} className="card p-5">
       <input type="hidden" name="plan_id" value={planId} />
-      <h2 className="text-[16px] font-bold">4. รายการ BOQ (ไม่บังคับ)</h2>
+      <h2 className="text-[16px] font-bold">4. ตาราง BOQ บนเว็บ (ตัวอย่างให้ลูกค้าดู — ไม่บังคับ)</h2>
       <p className="mt-1 text-[12.5px] text-muted">
+        ข้อมูลตารางที่ลูกค้าเปิดดูได้ฟรีบนเว็บ (ไม่ใช่ไฟล์ส่งมอบ — ไฟล์ BOQ ฉบับเต็มสำหรับผู้ซื้อ อัปโหลดในหัวข้อ 5) •
         ตาราง BOQ จะแสดงในหน้า <Link href={`/boq?plan=${code}`} className="text-bronze-dark underline" target="_blank">/boq</Link> ให้ลูกค้าเลือกดูแบบนี้ได้ —{" "}
         {count > 0 ? <b className="text-ink">ตอนนี้มี {count} รายการ (นำเข้าใหม่จะแทนที่ทั้งหมด)</b> : <b className="text-ink">ยังไม่มีรายการ BOQ</b>}
       </p>

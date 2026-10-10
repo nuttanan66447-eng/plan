@@ -8,7 +8,7 @@ import type { PlanFileKind } from "@/lib/types";
 const KINDS: { key: PlanFileKind; label: string; hint: string; icon: string; accept: string }[] = [
   { key: "blueprint", label: "เล่มแบบก่อสร้างครบชุด (PDF)", hint: "สถาปัตย์ โครงสร้าง ไฟฟ้า สุขาภิบาล", icon: "menu_book", accept: ".pdf" },
   { key: "structural", label: "รายการคำนวณโครงสร้าง (PDF)", hint: "ฉบับลงนามวิศวกร", icon: "assignment_turned_in", accept: ".pdf" },
-  { key: "boq", label: "BOQ (Excel / PDF)", hint: "ถอดปริมาณวัสดุและค่าแรง", icon: "table_view", accept: ".xlsx,.xls,.csv,.pdf" },
+  { key: "boq", label: "BOQ (Excel / PDF)", hint: "ไฟล์ฉบับเต็มให้ผู้ซื้อดาวน์โหลด (ต่างจากหัวข้อ 4 ที่แสดงบนเว็บ)", icon: "table_view", accept: ".xlsx,.xls,.csv,.pdf" },
   { key: "cad", label: "ไฟล์ดิจิทัล BIM / SketchUp / AutoCAD", hint: ".rvt .skp .dwg หรือ .zip — เฉพาะผู้ซื้อแพ็กเกจไฟล์ดิจิทัล", icon: "deployed_code", accept: ".zip,.rvt,.skp,.dwg,.dxf,.ifc,.rar,.7z" },
   { key: "render", label: "ภาพ 3D Render ความละเอียดสูง", hint: "JPG/PNG หรือ .zip — เฉพาะผู้ซื้อแพ็กเกจไฟล์ดิจิทัล", icon: "photo_camera", accept: ".zip,.jpg,.jpeg,.png" },
   { key: "other", label: "ไฟล์อื่นๆ", hint: "เช่น คู่มือ เอกสารประกอบการยื่น", icon: "attach_file", accept: "*" },
