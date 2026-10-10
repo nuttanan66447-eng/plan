@@ -20,7 +20,7 @@ const MATRIX: [string, string, React.ReactNode, React.ReactNode, React.ReactNode
   ["เล่มพิมพ์เขียวขนาด A3 สำหรับยื่นก่อสร้าง", "Architectural & Structural CAD Blueprint", "3 ชุด", "5 ชุด (ครบชุด)", "8 ชุด + ไฟล์ DWG ต้นฉบับ"],
   ["รายการคำนวณโครงสร้างวิศวกรโยธา (วศ.)", "Structural Engineering Calculation Book", `+ ${ENGINEERING_CALC.perSqm} บาท/ตร.ม.`, "รวมในแพ็กเกจแล้ว", "รวมในแพ็กเกจแล้ว (วุฒิวิศวกร)"],
   ["ถอดปริมาณวัสดุ BOQ ละเอียด", "Bill of Quantities with Material Spec", `+ ${BOQ_SERVICE.perSqm} บาท/ตร.ม.`, `+ ${BOQ_SERVICE.perSqm} บาท/ตร.ม.`, "รวมในแพ็กเกจแล้ว (ละเอียดทุกชิ้น)"],
-  ["ประสานงานยื่นขออนุญาต / อบต. / เทศบาล", "Municipal Authority Permit Liaison", "—", "ให้คำปรึกษาเอกสารฟรี", "ทีมงานดำเนินการยื่นแทนให้ 100%"],
+  ["ประสานงานยื่นขออนุญาต / อบต. / เทศบาล", "Municipal Authority Permit Liaison", "—", "ให้คำปรึกษาเอกสารฟรี", "ทีมงานยื่นแทนให้ 100% (เฉพาะ จ.ร้อยเอ็ด)"],
 ];
 
 export default function CustomDesignPage() {

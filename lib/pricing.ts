@@ -19,9 +19,12 @@ export const listPrice = (price: number) => near(price * 1.3, 1000);
 /** Add-ons offered when ordering a blueprint set. */
 export const ORDER_ADDONS = [
   { key: "bim", label: "ไฟล์ดิจิทัล BIM / Revit / AutoCAD (.dwg)", base: 2000, perSqm: 10 },
-  { key: "site", label: "ปรับผังให้เข้ากับที่ดิน + ยื่นขออนุญาตแทน", base: 3000, perSqm: 20 },
+  // permit filing is only offered where the team works on site
+  { key: "permit", label: "ยื่นขออนุญาตก่อสร้างแทน + ผังบริเวณตามที่ดินจริง", base: 3000, perSqm: 20, province: "ร้อยเอ็ด" },
   { key: "extra", label: "เล่มพิมพ์เขียวเพิ่ม 3 ชุด (สำหรับธนาคาร)", base: 1500, perSqm: 0 },
 ] as const;
+/** Province where permit filing (ยื่นขออนุญาตแทน) is available. */
+export const PERMIT_PROVINCE = "ร้อยเอ็ด";
 export const addonPrice = (a: { base: number; perSqm: number }, area: number) => near(a.base + a.perSqm * Math.max(0, area), 500);
 
 /** Custom design / drafting packages (หน้า รับออกแบบ-เขียนแบบ). fee = max(min, area × perSqm) */
