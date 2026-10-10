@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { baht } from "@/lib/format";
 import { addonPrice, ORDER_ADDONS } from "@/lib/pricing";
+import { DeedUpload } from "./DeedUpload";
 import { Field, LeadForm } from "./LeadForm";
 
 export function OrderForm({ code, price, area }: { code: string; price: number; area: number }) {
@@ -19,10 +20,14 @@ export function OrderForm({ code, price, area }: { code: string; price: number; 
         </div>
         <div className="mt-3 space-y-2 border-t border-hairline pt-3">
           {ADDONS.map((a) => (
-            <label key={a.key} className="flex cursor-pointer items-center gap-3 text-[13px]">
-              <input type="checkbox" className="check" checked={sel.includes(a.key)} onChange={() => setSel((s) => (s.includes(a.key) ? s.filter((x) => x !== a.key) : [...s, a.key]))} />
-              <span className="flex-1">{a.label}</span><span className="text-muted">+{baht(a.price)}</span>
-            </label>
+            <Fragment key={a.key}>
+              <label className="flex cursor-pointer items-center gap-3 text-[13px]">
+                <input type="checkbox" className="check" checked={sel.includes(a.key)} onChange={() => setSel((s) => (s.includes(a.key) ? s.filter((x) => x !== a.key) : [...s, a.key]))} />
+                <span className="flex-1">{a.label}</span><span className="text-muted">+{baht(a.price)}</span>
+              </label>
+              {/* site adaptation needs the land deed */}
+              {a.key === "site" && sel.includes("site") && <DeedUpload />}
+            </Fragment>
           ))}
         </div>
         <div className="mt-3 flex items-center justify-between border-t border-ink pt-3">

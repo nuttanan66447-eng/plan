@@ -53,6 +53,9 @@ export async function submitLead(_prev: LeadState | null, fd: FormData): Promise
     const v = str(fd, k, 300);
     if (v) meta[k] = v;
   }
+  // land-deed files uploaded to the private lead-files bucket (paths only; admins open them)
+  const deeds = (str(fd, "deed_files", 400) ?? "").split("|").filter((p) => /^deeds\/[0-9a-f-]{36}\/deed-\d\.[a-z0-9]{2,5}$/.test(p)).slice(0, 3);
+  if (deeds.length) meta.deed_files = deeds.join("|");
 
   const sb = publicClient();
   if (!sb) return { ok: false, message: `ระบบยังไม่ได้เชื่อมต่อฐานข้อมูล กรุณาโทร ${SITE.phone}` };

@@ -33,6 +33,13 @@ export default async function AdminLeads({ searchParams }: { searchParams: Promi
   }
   const [{ data }, { data: counts }] = await Promise.all([query, sb.from("leads").select("status")]);
   const leads = (data ?? []) as Lead[];
+  // short-lived links to customers' land-deed uploads (private bucket)
+  const deedPaths = leads.flatMap((l) => String((l.meta as Record<string, unknown>)?.deed_files ?? "").split("|").filter(Boolean));
+  const deedUrl: Record<string, string> = {};
+  if (deedPaths.length) {
+    const { data: signed } = await sb.storage.from("lead-files").createSignedUrls(deedPaths, 3600);
+    for (const s of signed ?? []) if (s.path && s.signedUrl) deedUrl[s.path] = s.signedUrl;
+  }
   const tally = (counts ?? []).reduce<Record<string, number>>((a, r) => ((a[r.status] = (a[r.status] ?? 0) + 1), a), {});
   const href = (p: Record<string, string | undefined>) => {
     const n = new URLSearchParams(Object.entries({ status, type, q, ...p }).filter(([, v]) => v) as [string, string][]);
@@ -80,7 +87,17 @@ export default async function AdminLeads({ searchParams }: { searchParams: Promi
                 <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
                   {([["อีเมล", l.email], ["LINE", l.line_id], ["จังหวัด", l.province], ["อำเภอ/ตำบล", l.district], ["แพ็กเกจ", l.service_package], ["ที่ดิน", l.land_width ? `${l.land_width} x ${l.land_depth} ม.` : null], ["พื้นที่", l.area_sqm ? `${l.area_sqm} ตร.ม.` : null], ["งบ/ข้อมูล", l.budget], ["วันนัด", l.preferred_date ? `${l.preferred_date} ${l.preferred_slot ?? ""}` : l.preferred_slot], ["ข้อความ", l.message]] as [string, string | null][])
                     .filter(([, v]) => v).map(([k, v]) => (<Fragment key={k}><dt className="text-muted">{k}</dt><dd className="whitespace-pre-wrap">{v}</dd></Fragment>))}
-                  {Object.entries(l.meta ?? {}).map(([k, v]) => (<Fragment key={`m-${k}`}><dt className="text-muted">{k}</dt><dd>{String(v)}</dd></Fragment>))}
+                  {Object.entries(l.meta ?? {}).filter(([k]) => k !== "deed_files").map(([k, v]) => (<Fragment key={`m-${k}`}><dt className="text-muted">{k}</dt><dd>{String(v)}</dd></Fragment>))}
+                  {(l.meta as Record<string, unknown>)?.deed_files ? (
+                    <>
+                      <dt className="text-muted">โฉนดที่ดิน</dt>
+                      <dd className="flex flex-wrap gap-2">
+                        {String((l.meta as Record<string, unknown>).deed_files).split("|").map((p, i) => deedUrl[p]
+                          ? <a key={p} href={deedUrl[p]} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 font-semibold text-bronze-dark hover:underline"><Icon name="description" /> ไฟล์ {i + 1}</a>
+                          : <span key={p} className="text-muted">ไฟล์ {i + 1} (เปิดไม่ได้)</span>)}
+                      </dd>
+                    </>
+                  ) : null}
                 </dl>
                 <form action={updateLead} className="space-y-3 bg-wash p-4">
                   <input type="hidden" name="id" value={l.id} />
