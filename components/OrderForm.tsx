@@ -16,16 +16,22 @@ const INCLUDED: [string, string][] = [
 
 export function OrderForm({ code, price, area }: { code: string; price: number; area: number }) {
   // add-on prices scale with the house size
-  const ADDONS = ORDER_ADDONS.map((a) => ({ key: a.key, label: a.label, price: addonPrice(a, area), province: "province" in a ? a.province : undefined }));
+  const ADDONS = ORDER_ADDONS.map((a) => ({
+    key: a.key, label: a.label, price: addonPrice(a, area),
+    province: "province" in a ? a.province : undefined, includes: "includes" in a ? a.includes : undefined,
+  }));
   const [sel, setSel] = useState<string[]>([]);
   const [where, setWhere] = useState<"" | "roiet" | "other">("");
   const [otherProvince, setOtherProvince] = useState("");
   const province = where === "roiet" ? PERMIT_PROVINCE : otherProvince.trim();
   const allowed = (a: { province?: string }) => !a.province || where === "roiet";
-  const chosen = ADDONS.filter((a) => sel.includes(a.key) && allowed(a));
+  const picked = ADDONS.filter((a) => sel.includes(a.key) && allowed(a));
+  // an add-on that already contains another (permit filing → site plan) makes the inner one free
+  const covered = new Set<string>(picked.flatMap((a) => (a.includes ? [a.includes] : [])));
+  const chosen = picked.filter((a) => !covered.has(a.key));
   const total = price + chosen.reduce((s, a) => s + a.price, 0);
   const pkg = ["ชุดแบบมาตรฐาน (เล่มแบบ 5 ชุด + รายการคำนวณ + BOQ + ปรับทิศผังฟรี)", ...chosen.map((a) => a.label)].join(" + ");
-  const permit = chosen.some((a) => a.key === "permit");
+  const needsDeed = chosen.some((a) => a.key === "permit" || a.key === "siteplan");
 
   return (
     <LeadForm type="order" hidden={{ plan_code: code, estimate_thb: total, service_package: pkg.slice(0, 80), deliverables: pkg, province }} submitLabel={`ยืนยันสั่งซื้อ (${baht(total)})`} successTitle="รับคำสั่งซื้อเรียบร้อย">
@@ -60,14 +66,15 @@ export function OrderForm({ code, price, area }: { code: string; price: number; 
         <p className="mt-3 border-t border-hairline pt-3 text-[11.5px] font-semibold text-muted">เลือกเพิ่ม</p>
         <div className="mt-2 space-y-2">
           {ADDONS.map((a) => {
-            const ok = allowed(a);
+            const inside = covered.has(a.key);
+            const ok = allowed(a) && !inside;
             return (
               <div key={a.key}>
-                <label className={`flex items-center gap-3 text-[13px] ${ok ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
-                  <input type="checkbox" className="check" disabled={!ok} checked={ok && sel.includes(a.key)}
+                <label className={`flex items-center gap-3 text-[13px] ${ok ? "cursor-pointer" : inside ? "" : "cursor-not-allowed opacity-50"}`}>
+                  <input type="checkbox" className="check" disabled={!ok} checked={inside || (ok && sel.includes(a.key))}
                     onChange={() => setSel((s) => (s.includes(a.key) ? s.filter((x) => x !== a.key) : [...s, a.key]))} />
                   <span className="flex-1">{a.label}{a.province && <span className="ml-1 text-[11.5px] font-semibold text-bronze-dark">(เฉพาะ จ.{a.province})</span>}</span>
-                  <span className="text-muted">+{baht(a.price)}</span>
+                  {inside ? <span className="text-[12px] font-semibold text-success">รวมแล้ว</span> : <span className="text-muted">+{baht(a.price)}</span>}
                 </label>
                 {a.province && where === "other" && (
                   <p className="ml-[30px] mt-1 text-[11.5px] text-muted">นอก จ.{a.province}: นำเล่มแบบไปยื่นที่ อบต./เทศบาลในพื้นที่ได้เอง — เล่มแบบมีลายเซ็นวิศวกรพร้อมยื่นครบชุด</p>
@@ -79,7 +86,7 @@ export function OrderForm({ code, price, area }: { code: string; price: number; 
         </div>
 
         {/* deed: optional for the free re-orientation, needed for permit filing */}
-        <DeedUpload needed={permit} />
+        <DeedUpload needed={needsDeed} />
 
         <div className="mt-3 flex items-center justify-between border-t border-ink pt-3">
           <span className="text-[13px] font-semibold">ยอดรวม (รวม VAT)</span>
