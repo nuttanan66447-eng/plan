@@ -41,7 +41,7 @@ export function DeedUpload({ needed = false }: { needed?: boolean }) {
     <div className={`mt-3 border border-dashed bg-white p-3 ${needed ? "border-ink" : "border-hairline"}`}>
       <input type="hidden" name="deed_files" value={files.map((f) => f.path).join("|")} />
       <p className="flex items-center gap-2 text-[13px] font-semibold"><Icon name="description" className="text-bronze-dark" /> แนบโฉนดที่ดิน (รูปถ่ายหรือ PDF) <span className={`text-[11px] ${needed ? "text-bronze-dark" : "font-normal text-muted"}`}>{needed ? "— ใช้เขียนผังบริเวณ" : "— ไม่บังคับ"}</span></p>
-      <p className="mt-0.5 text-[11.5px] text-muted">ใช้หมุนทิศ/กลับด้านผังให้เข้ากับแปลงที่ดิน{needed ? " และเขียนผังบริเวณ" : ""} • ถ่ายให้เห็นเลขที่โฉนด ขนาด และรูปแปลงชัดเจน (ด้านหน้า-หลัง) • สูงสุด {MAX} ไฟล์ ไฟล์ละไม่เกิน 10MB • เห็นได้เฉพาะเจ้าหน้าที่ • ยังไม่สะดวก แนบภายหลังทาง LINE ได้</p>
+      <p className="mt-0.5 text-[11.5px] text-muted">ใช้วางผังบ้านให้เข้ากับแปลงที่ดิน{needed ? " และเขียนผังบริเวณ" : ""} • ถ่ายให้เห็นเลขที่โฉนด ขนาด และรูปแปลงชัดเจน (ด้านหน้า-หลัง) • สูงสุด {MAX} ไฟล์ ไฟล์ละไม่เกิน 10MB • เห็นได้เฉพาะเจ้าหน้าที่ • ยังไม่สะดวก แนบภายหลังทาง LINE ได้</p>
       {files.length > 0 && (
         <ul className="mt-2 space-y-1">
           {files.map((f) => (

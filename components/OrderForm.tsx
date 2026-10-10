@@ -9,9 +9,8 @@ import { Field, LeadForm } from "./LeadForm";
 
 const INCLUDED: [string, string][] = [
   ["เล่มพิมพ์เขียวแบบก่อสร้าง A3 จำนวน 5 ชุด", "รวมแล้ว"],
-  ["เล่มรายการคำนวณโครงสร้าง ลงนามวิศวกร", "รวมแล้ว"],
-  ["เอกสาร BOQ ถอดแบบวัสดุและค่าแรง (Excel + PDF)", "รวมแล้ว"],
-  ["ปรับกลับด้าน / หมุนทิศผังให้เข้ากับแปลงที่ดิน", "ฟรี"],
+  ["เล่มรายการคำนวณโครงสร้าง ลงนามวิศวกร", "ฟรี"],
+  ["เอกสาร BOQ ถอดแบบวัสดุและค่าแรง (Excel + PDF)", "ฟรี"],
 ];
 
 export function OrderForm({ code, price, area }: { code: string; price: number; area: number }) {
@@ -30,7 +29,7 @@ export function OrderForm({ code, price, area }: { code: string; price: number; 
   const covered = new Set<string>(picked.flatMap((a) => (a.includes ? [a.includes] : [])));
   const chosen = picked.filter((a) => !covered.has(a.key));
   const total = price + chosen.reduce((s, a) => s + a.price, 0);
-  const pkg = ["ชุดแบบมาตรฐาน (เล่มแบบ 5 ชุด + รายการคำนวณ + BOQ + ปรับทิศผังฟรี)", ...chosen.map((a) => a.label)].join(" + ");
+  const pkg = ["ชุดแบบมาตรฐาน (เล่มแบบ 5 ชุด + รายการคำนวณฟรี + BOQ ฟรี)", ...chosen.map((a) => a.label)].join(" + ");
   const needsDeed = chosen.some((a) => a.key === "permit" || a.key === "siteplan");
 
   return (

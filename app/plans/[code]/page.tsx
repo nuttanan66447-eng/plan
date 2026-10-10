@@ -145,7 +145,7 @@ export default async function PlanPage({ params }: { params: Promise<{ code: str
                       <span className="mt-1 inline-block bg-bronze-wash px-1.5 font-bold text-bronze-dark">SAVE {save}%</span></p>
                   )}
                 </div>
-                <p className="mt-3 flex items-center gap-1.5 text-[12px] text-ink-3"><Icon name="check_circle" className="text-bronze" /> ฟรี! สิทธิ์ปรับย้ายทิศทางผังตามแปลงที่ดิน</p>
+                <p className="mt-3 flex items-center gap-1.5 text-[12px] text-ink-3"><Icon name="check_circle" className="text-bronze" /> ฟรี! เล่มรายการคำนวณโครงสร้างลงนามวิศวกร + BOQ ถอดแบบวัสดุ</p>
               </div>
             </div>
 
