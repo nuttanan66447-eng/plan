@@ -10,7 +10,9 @@ import { uploadImage as upload } from "@/lib/upload";
 import { DEFAULT_HOTSPOTS } from "@/lib/hotspots";
 import { PLAN_STYLES, STYLE_LABEL } from "@/lib/format";
 import { autofillPlan } from "@/lib/plan-autofill";
-import type { Hotspot, ModelConfig, Plan, PlanStyle } from "@/lib/types";
+import type { Hotspot, ModelConfig, Plan, PlanStyle, SheetImage } from "@/lib/types";
+import { DeliverableFiles } from "./DeliverableFiles";
+import { PreviewSheets } from "./PreviewSheets";
 import { HotspotEditor } from "./HotspotEditor";
 import { ModelSetup } from "./ModelSetup";
 
@@ -56,7 +58,7 @@ const PREVIEW_DEFAULTS: Plan = {
   id: "new", code: "NEW", name_en: "", name_th: "", series: null, style: "modern", storeys: 2, area_sqm: 200, floor_areas: [110, 90],
   bedrooms: 3, bathrooms: 3, parking: 2, land_width: null, land_depth: null, min_land_sqwa: null, build_cost_min: 0, build_cost_max: 0,
   price: 0, price_original: null, badge: null, tagline: null, description: null, image: "", gallery: [], panorama: null, model_url: null,
-  section_image: null, floorplan_images: [], hotspots: null, model_config: null, features: [], pages_arch: null, pages_struct: null, pages_mep: null,
+  section_image: null, floorplan_images: [], hotspots: null, model_config: null, sheet_images: [], sample_pdf: null, features: [], pages_arch: null, pages_struct: null, pages_mep: null,
 };
 
 /** numbers that follow directly from the spec; recalculated when an existing plan's spec changes */
@@ -78,6 +80,8 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
   const [panorama, setPanorama] = useState<string>(plan?.panorama ?? "");
   const [modelUrl, setModelUrl] = useState<string>(plan?.model_url ?? "");
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(plan?.model_config ?? null);
+  const [sheets, setSheets] = useState<SheetImage[]>(plan?.sheet_images ?? []);
+  const [samplePdf, setSamplePdf] = useState<string>(plan?.sample_pdf ?? "");
   const [busy, setBusy] = useState<string | null>(null);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
   const [hotspots, setHotspots] = useState<Hotspot[]>(plan ? plan.hotspots ?? DEFAULT_HOTSPOTS : []);
@@ -219,6 +223,8 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
         <input type="hidden" name="gallery" value={JSON.stringify(gallery)} />
         <input type="hidden" name="panorama" value={panorama} />
         <input type="hidden" name="model_url" value={modelUrl} />
+        <input type="hidden" name="sheet_images" value={JSON.stringify(sheets)} />
+        <input type="hidden" name="sample_pdf" value={samplePdf} />
         <input type="hidden" name="model_config" value={modelConfig ? JSON.stringify(modelConfig) : ""} />
         <input type="hidden" name="section_image" value={section} />
         <input type="hidden" name="hotspots" value={JSON.stringify(hotspots.filter((h) => h.title.trim()))} />
@@ -398,6 +404,9 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
           </div>
           {busy && <p className="mt-3 flex items-center gap-2 text-[13px] text-bronze-dark"><Icon name="progress_activity" className="animate-spin" /> {busy}</p>}
           {uploadErr && <p className="mt-3 text-[13px] text-danger">{uploadErr}</p>}
+
+          <PreviewSheets value={sheets} onChange={setSheets} pdf={samplePdf} onPdf={setSamplePdf}
+            folder={() => (codeRef.current?.value || "new").toUpperCase().replace(/[^A-Z0-9-]/g, "")} />
         </section>
 
         <section className="card flex flex-wrap items-center gap-4 p-5">
@@ -426,6 +435,13 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
             <span>กด <b>เพิ่มแบบบ้าน</b> ก่อน ระบบจะเปิดหน้าแก้ไขแบบนี้ให้อัตโนมัติ แล้วนำเข้าไฟล์ BOQ ได้ทันทีในหัวข้อนี้ •{" "}
               <a href="/boq-template.csv" download className="font-semibold text-bronze-dark underline">ดาวน์โหลดไฟล์ตัวอย่าง BOQ (CSV)</a> ไปกรอกรอไว้ก่อนได้</span>
           </p>
+        </section>
+      )}
+
+      {plan ? <DeliverableFiles planId={plan.id} /> : (
+        <section className="card p-5">
+          <h2 className="flex items-center gap-2 text-[16px] font-bold"><Icon name="lock" className="text-bronze-dark" /> 5. ไฟล์ส่งมอบลูกค้า (เฉพาะผู้ซื้อ)</h2>
+          <p className="mt-2 bg-wash p-3 text-[13px] text-ink-3">กด <b>เพิ่มแบบบ้าน</b> ก่อน แล้วอัปโหลดเล่มแบบ PDF รายการคำนวณ BOQ และไฟล์ BIM/SketchUp/AutoCAD ได้ที่หัวข้อนี้ในหน้าแก้ไข</p>
         </section>
       )}
 

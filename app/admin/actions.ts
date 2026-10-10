@@ -131,6 +131,15 @@ export async function savePlan(_prev: PlanFormState | null, fd: FormData): Promi
   } catch {
     return { error: "ข้อมูลการตั้งค่าโมเดล 3D ไม่ถูกต้อง" };
   }
+  let sheets: { url: string; label: string; tag?: string }[] = [];
+  try {
+    sheets = (JSON.parse(String(fd.get("sheet_images") ?? "[]")) as unknown[])
+      .filter((x): x is Record<string, unknown> => !!x && typeof x === "object" && typeof (x as { url?: unknown }).url === "string")
+      .map((x) => ({ url: String(x.url).slice(0, 500), label: String(x.label ?? "").trim().slice(0, 60) || "แผ่นงานตัวอย่าง", tag: String(x.tag ?? "").trim().toUpperCase().slice(0, 8) || undefined }))
+      .slice(0, 8);
+  } catch {
+    return { error: "ข้อมูลแผ่นงานตัวอย่างไม่ถูกต้อง" };
+  }
   const image = text("image", 500) ?? gallery[0];
   if (!image) return { error: "กรุณาอัปโหลดรูปหลักอย่างน้อย 1 รูป" };
 
@@ -164,6 +173,8 @@ export async function savePlan(_prev: PlanFormState | null, fd: FormData): Promi
     section_image: text("section_image", 500),
     floorplan_images: floorplans,
     hotspots,
+    sheet_images: sheets,
+    sample_pdf: text("sample_pdf", 500),
     features: fd.getAll("features").map(String).filter((f) => FEATURES.includes(f)),
     pages_arch: num("pages_arch") ?? 36,
     pages_struct: num("pages_struct") ?? 22,

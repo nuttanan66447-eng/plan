@@ -36,6 +36,15 @@ export interface ModelView {
   t: [number, number, number];
 }
 
+export interface SheetImage {
+  url: string;
+  label: string;
+  tag?: string;
+}
+
+/** Kinds of private files delivered to paying customers. */
+export type PlanFileKind = "blueprint" | "structural" | "boq" | "cad" | "render" | "other";
+
 export interface Plan {
   id: string;
   code: string;
@@ -68,6 +77,10 @@ export interface Plan {
   /** numbered points on the cover photo; null = site defaults */
   hotspots: Hotspot[] | null;
   model_config: ModelConfig | null;
+  /** extra preview sheets shown under the viewer (e.g. electrical / sanitary sheet) */
+  sheet_images: SheetImage[];
+  /** public sample of the drawing set (a few watermarked pages) */
+  sample_pdf: string | null;
   features: PlanFeature[];
   pages_arch: number | null;
   pages_struct: number | null;

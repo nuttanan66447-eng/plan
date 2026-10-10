@@ -6,6 +6,13 @@ import { baht } from "@/lib/format";
 import { CARRIERS, ORDER_STEPS } from "@/lib/orders";
 import { Icon } from "./Icon";
 
+const FILE_LABEL: Record<string, string> = {
+  blueprint: "เล่มแบบก่อสร้างครบชุด", structural: "รายการคำนวณโครงสร้าง", boq: "BOQ", cad: "ไฟล์ BIM / SketchUp / AutoCAD", render: "ภาพ 3D Render", other: "เอกสารประกอบ",
+};
+const FILE_ICON: Record<string, string> = {
+  blueprint: "menu_book", structural: "assignment_turned_in", boq: "table_view", cad: "deployed_code", render: "photo_camera", other: "attach_file",
+};
+
 const date = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }) : "";
 
@@ -57,6 +64,25 @@ export function TrackOrder({ initialOrderNo }: { initialOrderNo: string }) {
                 );
               })}
             </ol>
+          )}
+
+          {state?.files && (
+            <div className="mt-5 border border-hairline p-4">
+              <p className="flex items-center gap-2 text-[14px] font-bold"><Icon name="download" className="text-bronze-dark" /> ไฟล์ของคุณ</p>
+              {state.files.length ? (
+                <ul className="mt-3 divide-y divide-hairline border border-hairline">
+                  {state.files.map((f) => (
+                    <li key={f.url} className="flex items-center gap-3 px-3 py-2.5 text-[13px]">
+                      <Icon name={FILE_ICON[f.kind] ?? "draft"} className="text-[20px] text-bronze-dark" />
+                      <span className="min-w-0 flex-1"><b className="block truncate">{f.name}</b><span className="text-[11.5px] text-muted">{FILE_LABEL[f.kind] ?? "ไฟล์"}{f.size ? ` • ${(f.size / 1048576).toFixed(1)} MB` : ""}</span></span>
+                      <a href={f.url} className="btn btn-primary btn-sm shrink-0"><Icon name="download" /> ดาวน์โหลด</a>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="mt-2 text-[13px] text-muted">ทีมงานกำลังเตรียมไฟล์ จะพร้อมดาวน์โหลดที่นี่เร็วๆ นี้</p>}
+              <p className="mt-2 text-[11.5px] text-muted">ลิงก์ดาวน์โหลดใช้ได้ 1 ชั่วโมง — หากหมดอายุ กด “ตรวจสอบ” อีกครั้งเพื่อรับลิงก์ใหม่</p>
+              {state.cadLocked && <p className="mt-1 text-[11.5px] text-muted">ไฟล์ BIM / SketchUp / AutoCAD และภาพ Render สั่งเพิ่มได้ — ติดต่อทีมงาน</p>}
+            </div>
           )}
 
           {o.tracking_no && (

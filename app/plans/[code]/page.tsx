@@ -1,3 +1,4 @@
+import type { Plan } from "@/lib/types";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -36,8 +37,28 @@ const DELIVERABLES = [
   ["print", "เล่มพิมพ์เขียวแบบก่อสร้าง A3 จำนวน 5 ชุด", "ครบงานสถาปัตย์ โครงสร้าง ระบบไฟฟ้า ประปา สุขาภิบาล พร้อมยื่นขออนุญาต"],
   ["assignment_turned_in", "เล่มรายการคำนวณโครงสร้างวิศวกร", "พร้อมเอกสารลงนามรับรองจากวุฒิวิศวกร (วศ.) และสามัญสถาปนิก (สถ.)"],
   ["table_view", "เอกสารรายการถอดแบบวัสดุและค่าแรง (BOQ)", "ไฟล์ Excel และ PDF ปรับใช้ประมูลงานผู้รับเหมาและยื่นกู้ธนาคารได้ 100%"],
-  ["deployed_code", "ไฟล์ดิจิทัล BIM, SketchUp (.skp) และ AutoCAD (.dwg)", "ดาวน์โหลดได้ทันทีหลังสั่งซื้อ พร้อมไฟล์ 3D Render ความละเอียดสูง 4K"],
+  ["deployed_code", "ไฟล์ดิจิทัล BIM, SketchUp (.skp) และ AutoCAD (.dwg)", "เมื่อเลือกแพ็กเกจไฟล์ดิจิทัล ดาวน์โหลดได้ที่หน้า “ติดตามคำสั่งซื้อ” หลังชำระเงิน พร้อมไฟล์ 3D Render"],
 ];
+
+interface Tile { img: string | null; label: string; icon: string; tag?: string; contain?: boolean }
+
+/** Exterior, section, every floor plan, then the admin's extra sheets; placeholders fill the row up to four. */
+function previewTiles(plan: Plan): Tile[] {
+  const tiles: Tile[] = [
+    { img: plan.gallery.find((g) => g !== plan.panorama && g !== plan.section_image) ?? plan.image, label: "ทัศนียภาพภายนอก", icon: "visibility" },
+    { img: plan.section_image, label: "ภาพตัด 3D", icon: "splitscreen", tag: "SEC" },
+    ...Array.from({ length: plan.storeys }, (_, f) => ({
+      img: plan.floorplan_images?.[f] || null, label: `แปลนพื้นชั้น ${f + 1}`, icon: "architecture", tag: `A-0${f + 1}`, contain: true,
+    })),
+    ...(plan.sheet_images ?? []).map((s) => ({ img: s.url, label: s.label, icon: "description", tag: s.tag, contain: true })),
+  ];
+  const fillers: Tile[] = [
+    { img: null, label: "ระบบไฟฟ้า-สุขาภิบาล", icon: "electrical_services", tag: "EE" },
+    { img: null, label: "รูปด้านอาคาร", icon: "domain", tag: "A-EL" },
+  ];
+  for (const f of fillers) if (tiles.length < 4 && !tiles.some((t) => t.label === f.label)) tiles.push(f);
+  return tiles.slice(0, 12);
+}
 
 export default async function PlanPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -79,27 +100,31 @@ export default async function PlanPage({ params }: { params: Promise<{ code: str
         <div className="shell grid gap-6 lg:grid-cols-[1fr_400px]">
           <div className="min-w-0">
             <PlanViewer plan={plan} />
-            <div className="mt-5 flex items-center justify-between">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
               <p className="label-tech text-muted">ภาพมุมมองและชุดแบบก่อสร้างในเล่ม (Preview Set)</p>
-              <p className="text-[12px] font-semibold text-bronze-dark">เล่มแบบ {pages} แผ่น (PDF)</p>
+              {plan.sample_pdf ? (
+                <a href={plan.sample_pdf} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[12px] font-semibold text-bronze-dark hover:underline">
+                  <Icon name="picture_as_pdf" /> ดูตัวอย่างเล่มแบบ {pages} แผ่น (PDF)
+                </a>
+              ) : <p className="text-[12px] font-semibold text-bronze-dark">เล่มแบบ {pages} แผ่น (PDF)</p>}
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-              {[
-                { img: plan.gallery.find((g) => g !== plan.panorama && g !== plan.section_image) ?? plan.image, label: "01 ทัศนียภาพภายนอก", icon: "visibility" },
-                { img: plan.section_image, label: "02 ภาพตัด 3D", icon: "splitscreen", tag: "SEC" },
-                { img: plan.floorplan_images?.[0] || null, label: "03 แปลนพื้นชั้น 1", icon: "architecture", tag: "A-01", contain: true },
-                { img: plan.floorplan_images?.[1] || null, label: plan.storeys > 1 ? "04 แปลนพื้นชั้น 2" : "04 ระบบไฟฟ้า-สุขาภิบาล", icon: plan.storeys > 1 ? "architecture" : "electrical_services", tag: plan.storeys > 1 ? "A-02" : "EE-04", contain: true },
-              ].map((t) => (
-                <div key={t.label} className="card">
-                  <div className="relative aspect-[4/3] bg-wash-2">
-                    {t.img ? <Image src={t.img} alt={t.label} fill sizes="200px" className={"contain" in t && t.contain ? "bg-white object-contain p-1" : "object-cover"} /> : (
-                      <div className="blueprint grid h-full place-items-center"><Icon name={t.icon} className="text-[38px] text-subtle" />
-                        <span className="absolute bottom-1.5 right-1.5 bg-ink px-1.5 text-[9px] font-bold text-white">{"tag" in t ? t.tag : ""}</span></div>
-                    )}
-                  </div>
-                  <p className="flex items-center justify-between p-2.5 text-[11.5px] font-semibold">{t.label} <Icon name={t.icon} className="text-muted" /></p>
-                </div>
-              ))}
+              {previewTiles(plan).map((t, i) => {
+                const body = (
+                  <>
+                    <div className="relative aspect-[4/3] bg-wash-2">
+                      {t.img ? <Image src={t.img} alt={t.label} fill sizes="200px" className={t.contain ? "bg-white object-contain p-1" : "object-cover"} /> : (
+                        <div className="blueprint grid h-full place-items-center"><Icon name={t.icon} className="text-[38px] text-subtle" /></div>
+                      )}
+                      {t.tag && <span className="absolute bottom-1.5 right-1.5 bg-ink px-1.5 text-[9px] font-bold text-white">{t.tag}</span>}
+                    </div>
+                    <p className="flex items-center justify-between gap-2 p-2.5 text-[11.5px] font-semibold">{String(i + 1).padStart(2, "0")} {t.label} <Icon name={t.icon} className="shrink-0 text-muted" /></p>
+                  </>
+                );
+                return t.img
+                  ? <a key={i} href={t.img} target="_blank" rel="noopener noreferrer" className="card card-hover block">{body}</a>
+                  : <div key={i} className="card">{body}</div>;
+              })}
             </div>
           </div>
 

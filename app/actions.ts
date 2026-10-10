@@ -1,5 +1,6 @@
 "use server";
 
+import { SUPABASE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
 import { publicClient } from "@/lib/supabase/public";
 import type { LeadType } from "@/lib/types";
 import { newOrderNo } from "@/lib/orders";
@@ -112,9 +113,39 @@ export interface TrackedOrder {
   created_at: string;
   order_updated_at: string | null;
 }
+export interface OrderFile {
+  kind: string;
+  name: string;
+  size: number | null;
+  url: string;
+}
 export interface TrackState {
   error?: string;
   order?: TrackedOrder;
+  /** download links, once the order is paid */
+  files?: OrderFile[];
+  /** BIM/CAD files exist but were not part of this order */
+  cadLocked?: boolean;
+}
+
+const PAID = ["paid", "preparing", "shipped", "delivered"];
+
+/** Signed download links from the order-files edge function (it re-checks order no. + phone and payment). */
+async function orderFiles(orderNo: string, phone: string) {
+  if (!SUPABASE_URL) return null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/order-files`, {
+      method: "POST",
+      headers: { "content-type": "application/json", apikey: SUPABASE_KEY },
+      body: JSON.stringify({ order_no: orderNo, phone }),
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as { files?: OrderFile[]; cadLocked?: boolean };
+  } catch (e) {
+    console.error("orderFiles", (e as Error).message);
+    return null;
+  }
 }
 
 /** Order lookup for customers: order number + the phone number used when ordering. */
@@ -132,7 +163,9 @@ export async function trackOrder(_prev: TrackState | null, fd: FormData): Promis
   }
   const order = (data as TrackedOrder[] | null)?.[0];
   if (!order) return { error: "ไม่พบคำสั่งซื้อ กรุณาตรวจสอบเลขที่คำสั่งซื้อและเบอร์โทรศัพท์" };
-  return { order };
+  if (!PAID.includes(order.order_status ?? "")) return { order };
+  const dl = await orderFiles(orderNo, phone);
+  return { order, files: dl?.files ?? [], cadLocked: dl?.cadLocked };
 }
 
 export interface ReviewState {
