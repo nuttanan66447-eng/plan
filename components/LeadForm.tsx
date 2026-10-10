@@ -3,6 +3,7 @@
 import { createContext, useActionState, useContext, useState, type FormEvent, type ReactNode } from "react";
 import { submitLead, type LeadState } from "@/app/actions";
 import type { LeadType } from "@/lib/types";
+import Link from "next/link";
 import { Icon } from "./Icon";
 
 const ErrCtx = createContext<Record<string, string> | undefined>(undefined);
@@ -45,6 +46,14 @@ export function LeadForm({ type, hidden = {}, submitLabel, children, className =
         <span className="grid h-11 w-11 place-items-center bg-success text-white"><Icon name="check" className="text-[24px]" /></span>
         <h3 className="text-[19px] font-bold">{successTitle ?? "ส่งข้อมูลเรียบร้อยแล้ว"}</h3>
         <p className={`text-[14px] ${dark ? "text-white/70" : "text-muted"}`}>{state.message}</p>
+        {state.orderNo && (
+          <div className="w-full border border-ink bg-white p-4">
+            <p className="text-[12px] text-muted">เลขที่คำสั่งซื้อ — บันทึกไว้เพื่อติดตามสถานะ</p>
+            <p className="font-display text-[26px] font-bold tracking-[0.04em]">{state.orderNo}</p>
+            <Link href={`/track?order=${state.orderNo}`} className="btn btn-primary btn-sm mt-2"><Icon name="local_shipping" /> ติดตามสถานะคำสั่งซื้อ</Link>
+            <p className="mt-2 text-[11.5px] text-muted">ตรวจสอบสถานะการชำระเงินและการจัดส่งได้ตลอดที่หน้า “ติดตามคำสั่งซื้อ” ด้วยเลขที่นี้ + เบอร์โทรที่ใช้สั่งซื้อ</p>
+          </div>
+        )}
       </div>
     );
   }

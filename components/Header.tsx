@@ -39,7 +39,10 @@ export function Header() {
             </span>
           </p>
           <div className="hidden items-center gap-6 text-white/70 md:flex">
-            <span className="flex items-center gap-1.5">
+            <Link href="/track" className="flex items-center gap-1.5 hover:text-white">
+              <Icon name="local_shipping" className="text-bronze" /> ติดตามคำสั่งซื้อ
+            </Link>
+            <span className="hidden items-center gap-1.5 xl:flex">
               <Icon name="verified" className="text-bronze" /> วิศวกรโยธา ใบอนุญาต {SITE.license}
             </span>
             <a href={SITE.phoneHref} className="flex items-center gap-1.5 hover:text-white">

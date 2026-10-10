@@ -52,6 +52,7 @@ export function Footer() {
             <li><a href={`mailto:${SITE.email}`} className="flex items-center gap-2 hover:text-bronze-dark"><Icon name="mail" className="text-bronze" />{SITE.email}</a></li>
             <li><a href={SITE.lineHref} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-bronze-dark"><Icon name="chat" className="text-bronze" />LINE {SITE.line}</a></li>
             <li className="flex items-center gap-2"><Icon name="schedule" className="text-bronze" />{SITE.hours}</li>
+            <li><Link href="/track" className="flex items-center gap-2 font-semibold hover:text-bronze-dark"><Icon name="local_shipping" className="text-bronze" />ติดตามคำสั่งซื้อ / สถานะการจัดส่ง</Link></li>
           </ul>
         </div>
       </div>

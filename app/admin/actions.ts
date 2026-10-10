@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseCsv } from "@/lib/csv";
+import { CARRIERS, ORDER_STATUS_LABEL } from "@/lib/orders";
 import { STYLE_KEYS } from "@/lib/format";
 import { parseHotspots } from "@/lib/hotspots";
 import { parseModelConfig } from "@/lib/model-config";
@@ -33,7 +34,21 @@ export async function updateLead(fd: FormData) {
   const note = String(fd.get("admin_note") ?? "").slice(0, 2000);
   if (!id || !STATUSES.includes(status)) return;
   const sb = await serverClient();
-  await sb.from("leads").update({ status, admin_note: note || null }).eq("id", id);
+  const patch: Record<string, unknown> = { status, admin_note: note || null };
+  // blueprint orders also carry a fulfilment status and parcel tracking the customer can see
+  if (fd.has("order_status")) {
+    const os = String(fd.get("order_status") ?? "");
+    const carrier = String(fd.get("carrier") ?? "");
+    const tracking = String(fd.get("tracking_no") ?? "").trim().slice(0, 60);
+    if (os in ORDER_STATUS_LABEL) patch.order_status = os;
+    patch.carrier = carrier in CARRIERS ? carrier : null;
+    patch.tracking_no = tracking || null;
+    const { data: before } = await sb.from("leads").select("order_status,carrier,tracking_no").eq("id", id).maybeSingle();
+    if (before && (before.order_status !== patch.order_status || before.carrier !== patch.carrier || before.tracking_no !== patch.tracking_no)) {
+      patch.order_updated_at = new Date().toISOString();
+    }
+  }
+  await sb.from("leads").update(patch).eq("id", id);
   revalidatePath("/admin");
 }
 

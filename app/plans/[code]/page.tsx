@@ -6,6 +6,7 @@ import { CompareToggle } from "@/components/CompareControls";
 import { Icon } from "@/components/Icon";
 import { Field, LeadForm } from "@/components/LeadForm";
 import { OrderForm } from "@/components/OrderForm";
+import { PlanForms } from "@/components/PlanForms";
 import { Panorama } from "@/components/Panorama";
 import { PlanCard } from "@/components/PlanCard";
 import { PlanViewer } from "@/components/PlanViewer";
@@ -187,7 +188,7 @@ export default async function PlanPage({ params }: { params: Promise<{ code: str
                 </ol>) },
               { label: "การปรับแก้แปลน & เงื่อนไขลิขสิทธิ์", content: (
                 <div className="prose-th max-w-3xl text-[14px] text-muted">
-                  <p>ลูกค้าสามารถขอปรับกลับด้านผัง (Mirror) ย้ายทิศทางตามที่ดิน และขยายระยะเสาไม่เกิน 10% ได้ฟรี การปรับเปลี่ยนฟังก์ชันห้องหรือเพิ่มพื้นที่มากกว่านี้คิดค่าบริการตามขอบเขตงาน เริ่มต้น 12,000 บาท</p>
+                  <p>ลูกค้าสามารถขอปรับกลับด้านผัง (Mirror) ย้ายทิศทางตามที่ดิน และขยายระยะเสาไม่เกิน 10% ได้ฟรี การปรับเปลี่ยนฟังก์ชันห้องหรือเพิ่มพื้นที่มากกว่านี้คิดค่าบริการตามขอบเขตงาน เริ่มต้น 3,000 บาท</p>
                   <p>สิทธิ์การใช้แบบเป็นแบบ 1 ชุด ต่อการก่อสร้าง 1 หลัง ห้ามนำไปทำซ้ำหรือจำหน่ายต่อ ไฟล์ BIM/CAD ใช้สำหรับการก่อสร้างและประสานงานผู้รับเหมาของโครงการเท่านั้น</p>
                 </div>) },
             ]} />
@@ -207,29 +208,36 @@ export default async function PlanPage({ params }: { params: Promise<{ code: str
       )}
 
       <section id="order" className="scroll-mt-32 border-y border-hairline bg-white py-12">
-        <div className="shell grid gap-10 lg:grid-cols-2">
-          <div>
-            <p className="eyebrow">Order Blueprint Set</p>
-            <h2 className="mt-2 text-[26px] font-bold">สั่งซื้อชุดแบบ {plan.code}</h2>
-            <p className="mt-2 text-[13.5px] text-muted">กรอกข้อมูลเพื่อยืนยันคำสั่งซื้อ ทีมงานจะติดต่อกลับพร้อมรายละเอียดการชำระเงิน (โอน/บัตรเครดิต/ผ่อน 0%) และนัดหมายปรับผังที่ดิน</p>
-            <div className="mt-5"><OrderForm code={plan.code} price={plan.price} /></div>
-          </div>
-          <div id="consult" className="scroll-mt-32">
-            <p className="eyebrow">Free Consultation</p>
-            <h2 className="mt-2 text-[26px] font-bold">นัดปรึกษาสถาปนิกปรับแปลนฟรี 30 นาที</h2>
-            <p className="mt-2 text-[13.5px] text-muted">ส่งขนาดที่ดินและความต้องการ สถาปนิกจะประเมินความเป็นไปได้ในการปรับแบบให้ฟรี ผ่าน Zoom / LINE หรือที่สำนักงาน</p>
-            <LeadForm type="consult" hidden={{ plan_code: plan.code }} submitLabel="ยืนยันนัดหมายปรึกษา" className="mt-5">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field name="name" label="ชื่อ-นามสกุล" required autoComplete="name" />
-                <Field name="phone" label="เบอร์โทรศัพท์" type="tel" required autoComplete="tel" />
-                <Field name="land_width" label="หน้ากว้างที่ดิน (ม.)" type="number" step="0.1" min="0" />
-                <Field name="land_depth" label="ความลึกที่ดิน (ม.)" type="number" step="0.1" min="0" />
-                <Field name="preferred_date" label="วันที่สะดวก" type="date" />
-                <Field name="preferred_slot" as="select" label="ช่วงเวลา" options={["10:00 - 11:30 น.", "13:30 - 15:00 น.", "16:30 - 18:00 น."]} />
-                <Field name="message" as="textarea" label="สิ่งที่ต้องการปรับ" className="sm:col-span-2" placeholder="เช่น ต้องการเพิ่มห้องนอนชั้นล่างสำหรับผู้สูงอายุ" />
-              </div>
-            </LeadForm>
-          </div>
+        <span id="consult" className="block scroll-mt-32" aria-hidden="true" />
+        <div className="shell">
+          <PlanForms
+            order={
+              <>
+                <p className="eyebrow">Order Blueprint Set</p>
+                <h2 className="mt-2 text-[26px] font-bold">สั่งซื้อชุดแบบ {plan.code}</h2>
+                <p className="mt-2 text-[13.5px] text-muted">กรอกข้อมูลเพื่อยืนยันคำสั่งซื้อ ทีมงานจะติดต่อกลับพร้อมรายละเอียดการชำระเงิน (โอน/บัตรเครดิต/ผ่อน 0%) และนัดหมายปรับผังที่ดิน</p>
+                <div className="mt-5"><OrderForm code={plan.code} price={plan.price} area={plan.area_sqm} /></div>
+              </>
+            }
+            consult={
+              <>
+                <p className="eyebrow">Free Consultation</p>
+                <h2 className="mt-2 text-[26px] font-bold">นัดปรึกษาสถาปนิกปรับแปลนฟรี 30 นาที</h2>
+                <p className="mt-2 text-[13.5px] text-muted">ส่งขนาดที่ดินและความต้องการ สถาปนิกจะประเมินความเป็นไปได้ในการปรับแบบให้ฟรี ผ่าน Zoom / LINE หรือที่สำนักงาน</p>
+                <LeadForm type="consult" hidden={{ plan_code: plan.code }} submitLabel="ยืนยันนัดหมายปรึกษา" className="mt-5">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Field name="name" label="ชื่อ-นามสกุล" required autoComplete="name" />
+                    <Field name="phone" label="เบอร์โทรศัพท์" type="tel" required autoComplete="tel" />
+                    <Field name="land_width" label="หน้ากว้างที่ดิน (ม.)" type="number" step="0.1" min="0" />
+                    <Field name="land_depth" label="ความลึกที่ดิน (ม.)" type="number" step="0.1" min="0" />
+                    <Field name="preferred_date" label="วันที่สะดวก" type="date" />
+                    <Field name="preferred_slot" as="select" label="ช่วงเวลา" options={["10:00 - 11:30 น.", "13:30 - 15:00 น.", "16:30 - 18:00 น."]} />
+                    <Field name="message" as="textarea" label="สิ่งที่ต้องการปรับ" className="sm:col-span-2" placeholder="เช่น ต้องการเพิ่มห้องนอนชั้นล่างสำหรับผู้สูงอายุ" />
+                  </div>
+                </LeadForm>
+              </>
+            }
+          />
         </div>
       </section>
 

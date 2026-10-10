@@ -4,6 +4,8 @@ import { DesignEstimator } from "@/components/DesignEstimator";
 import { Icon } from "@/components/Icon";
 import { Field, LeadForm } from "@/components/LeadForm";
 import { SectionHeading } from "@/components/SectionHeading";
+import { baht, num } from "@/lib/format";
+import { BOQ_SERVICE, DESIGN_PACKAGES, ENGINEERING_CALC } from "@/lib/pricing";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -16,8 +18,8 @@ const MATRIX: [string, string, React.ReactNode, React.ReactNode, React.ReactNode
   ["การแก้ไขผังแปลนพื้นที่ใช้สอย", "Design Revisions & Spatial Iterations", "แก้ไขได้ 2 ครั้ง", "ปรับแก้แบบไม่จำกัด (3 รอบใหญ่)", "ไม่จำกัดจนแบบเสร็จสมบูรณ์"],
   ["โมเดล Interactive 3D BIM หมุนดูผ่านมือถือ / PC", "Interactive BIM / Revit 360 Walkthrough", "—", <Icon key="a" name="check_circle" className="text-bronze" />, <Icon key="b" name="check_circle" className="text-bronze" />],
   ["เล่มพิมพ์เขียวขนาด A3 สำหรับยื่นก่อสร้าง", "Architectural & Structural CAD Blueprint", "3 ชุด", "5 ชุด (ครบชุด)", "8 ชุด + ไฟล์ DWG ต้นฉบับ"],
-  ["รายการคำนวณโครงสร้างวิศวกรโยธา (วศ.)", "Structural Engineering Calculation Book", "+ ฿12,000", "รวมในแพ็กเกจแล้ว", "รวมในแพ็กเกจแล้ว (วุฒิวิศวกร)"],
-  ["ถอดปริมาณวัสดุ BOQ ละเอียด", "Bill of Quantities with Material Spec", "+ ฿8,000", "+ ฿8,000", "รวมในแพ็กเกจแล้ว (ละเอียดทุกชิ้น)"],
+  ["รายการคำนวณโครงสร้างวิศวกรโยธา (วศ.)", "Structural Engineering Calculation Book", `+ ${ENGINEERING_CALC.perSqm} บาท/ตร.ม.`, "รวมในแพ็กเกจแล้ว", "รวมในแพ็กเกจแล้ว (วุฒิวิศวกร)"],
+  ["ถอดปริมาณวัสดุ BOQ ละเอียด", "Bill of Quantities with Material Spec", `+ ${BOQ_SERVICE.perSqm} บาท/ตร.ม.`, `+ ${BOQ_SERVICE.perSqm} บาท/ตร.ม.`, "รวมในแพ็กเกจแล้ว (ละเอียดทุกชิ้น)"],
   ["ประสานงานยื่นขออนุญาต / อบต. / เทศบาล", "Municipal Authority Permit Liaison", "—", "ให้คำปรึกษาเอกสารฟรี", "ทีมงานดำเนินการยื่นแทนให้ 100%"],
 ];
 
@@ -84,9 +86,12 @@ export default function CustomDesignPage() {
                 ))}
                 <tr className="border-t border-hairline bg-wash">
                   <td className="p-4 font-bold">ประมาณการค่าบริการเริ่มต้น</td>
-                  <td className="border-l border-hairline p-4 text-center"><b className="font-display text-[22px]">฿25,000</b><span className="block text-[11px] text-muted">ราคาเริ่มต้น</span></td>
-                  <td className="border-x-2 border-b-2 border-bronze bg-bronze-wash p-4 text-center"><b className="font-display text-[22px] text-bronze-dark">฿65,000</b><span className="block text-[11px] text-muted">หรือ 220 บาท/ตร.ม.</span></td>
-                  <td className="border-l border-hairline p-4 text-center"><b className="font-display text-[22px]">฿120,000</b><span className="block text-[11px] text-muted">หรือ 380 บาท/ตร.ม.</span></td>
+                  {DESIGN_PACKAGES.map((p, i) => (
+                    <td key={p.key} className={i === 1 ? "border-x-2 border-b-2 border-bronze bg-bronze-wash p-4 text-center" : "border-l border-hairline p-4 text-center"}>
+                      <b className={`font-display text-[22px] ${i === 1 ? "text-bronze-dark" : ""}`}>{num(p.perSqm)} บาท/ตร.ม.</b>
+                      <span className="block text-[11px] text-muted">ขั้นต่ำ {baht(p.min)} • คิดตามพื้นที่ใช้สอย</span>
+                    </td>
+                  ))}
                 </tr>
               </tbody>
             </table>

@@ -2,15 +2,12 @@
 
 import { useState } from "react";
 import { baht } from "@/lib/format";
+import { addonPrice, ORDER_ADDONS } from "@/lib/pricing";
 import { Field, LeadForm } from "./LeadForm";
 
-const ADDONS = [
-  { key: "bim", label: "ไฟล์ดิจิทัล BIM / Revit / AutoCAD (.dwg)", price: 8000 },
-  { key: "site", label: "ปรับผังให้เข้ากับที่ดิน + ยื่นขออนุญาตแทน", price: 12000 },
-  { key: "extra", label: "เล่มพิมพ์เขียวเพิ่ม 3 ชุด (สำหรับธนาคาร)", price: 2500 },
-];
-
-export function OrderForm({ code, price }: { code: string; price: number }) {
+export function OrderForm({ code, price, area }: { code: string; price: number; area: number }) {
+  // add-on prices scale with the house size
+  const ADDONS = ORDER_ADDONS.map((a) => ({ key: a.key, label: a.label, price: addonPrice(a, area) }));
   const [sel, setSel] = useState<string[]>([]);
   const total = price + ADDONS.filter((a) => sel.includes(a.key)).reduce((s, a) => s + a.price, 0);
   const pkg = ["ชุดแบบมาตรฐาน", ...ADDONS.filter((a) => sel.includes(a.key)).map((a) => a.label)].join(" + ");

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { Icon } from "@/components/Icon";
 import { baht, LEAD_STATUS_LABEL, LEAD_TYPE_LABEL } from "@/lib/format";
+import { CARRIERS, ORDER_STATUS_LABEL } from "@/lib/orders";
 import type { Lead } from "@/lib/types";
 import { updateLead } from "./actions";
 import { AdminNav } from "./AdminNav";
@@ -28,7 +29,7 @@ export default async function AdminLeads({ searchParams }: { searchParams: Promi
   if (type && type in LEAD_TYPE_LABEL) query = query.eq("type", type);
   if (q) {
     const t = q.replace(/[%,()]/g, " ").trim();
-    if (t) query = query.or(`name.ilike.%${t}%,phone.ilike.%${t}%,plan_code.ilike.%${t}%,email.ilike.%${t}%`);
+    if (t) query = query.or(`name.ilike.%${t}%,phone.ilike.%${t}%,plan_code.ilike.%${t}%,email.ilike.%${t}%,order_no.ilike.%${t}%`);
   }
   const [{ data }, { data: counts }] = await Promise.all([query, sb.from("leads").select("status")]);
   const leads = (data ?? []) as Lead[];
@@ -51,7 +52,7 @@ export default async function AdminLeads({ searchParams }: { searchParams: Promi
         </div>
         <form className="mt-5 flex flex-wrap gap-2" action="/admin">
           {status && <input type="hidden" name="status" value={status} />}
-          <input name="q" defaultValue={q} placeholder="ค้นหาชื่อ เบอร์ อีเมล รหัสแบบ" className="input !w-auto flex-1" />
+          <input name="q" defaultValue={q} placeholder="ค้นหาชื่อ เบอร์ อีเมล รหัสแบบ เลขที่คำสั่งซื้อ" className="input !w-auto flex-1" />
           <select name="type" defaultValue={type ?? ""} className="input !w-auto">
             <option value="">ทุกประเภท</option>
             {Object.entries(LEAD_TYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
@@ -66,6 +67,8 @@ export default async function AdminLeads({ searchParams }: { searchParams: Promi
               <summary className="flex cursor-pointer list-none flex-wrap items-center gap-3 p-4">
                 <span className={`px-2 py-0.5 text-[11px] font-bold ${STATUS_STYLE[l.status]}`}>{LEAD_STATUS_LABEL[l.status]}</span>
                 <span className="chip">{LEAD_TYPE_LABEL[l.type]}</span>
+                {l.order_no && <span className="font-display text-[13px] font-bold">{l.order_no}</span>}
+                {l.order_status && <span className={`px-2 py-0.5 text-[11px] font-bold ${l.order_status === "delivered" ? "bg-success text-white" : l.order_status === "cancelled" ? "bg-[#ffe1dc] text-danger" : "bg-ink text-white"}`}>{ORDER_STATUS_LABEL[l.order_status]}</span>}
                 <b className="text-[14.5px]">{l.name}</b>
                 <a href={`tel:${l.phone}`} className="text-[13px] text-bronze-dark hover:underline">{l.phone}</a>
                 {l.plan_code && <span className="text-[12px] text-muted">{l.plan_code}</span>}
@@ -85,6 +88,22 @@ export default async function AdminLeads({ searchParams }: { searchParams: Promi
                     <select id={`s-${l.id}`} name="status" defaultValue={l.status} className="input">
                       {Object.entries(LEAD_STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                     </select></div>
+                  {l.type === "order" && (
+                    <div className="space-y-3 border border-ink bg-white p-3">
+                      <p className="text-[12px] font-bold">การจัดส่ง (ลูกค้าเห็นที่หน้า /track)</p>
+                      <div className="field"><label className="field-label" htmlFor={`os-${l.id}`}>สถานะคำสั่งซื้อ</label>
+                        <select id={`os-${l.id}`} name="order_status" defaultValue={l.order_status ?? "pending_payment"} className="input">
+                          {Object.entries(ORDER_STATUS_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        </select></div>
+                      <div className="field"><label className="field-label" htmlFor={`c-${l.id}`}>ขนส่ง</label>
+                        <select id={`c-${l.id}`} name="carrier" defaultValue={l.carrier ?? ""} className="input">
+                          <option value="">— ยังไม่ส่ง —</option>
+                          {Object.entries(CARRIERS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                        </select></div>
+                      <div className="field"><label className="field-label" htmlFor={`t-${l.id}`}>เลขพัสดุ</label>
+                        <input id={`t-${l.id}`} name="tracking_no" defaultValue={l.tracking_no ?? ""} className="input uppercase" placeholder="เช่น EF123456789TH" /></div>
+                    </div>
+                  )}
                   <div className="field"><label className="field-label" htmlFor={`n-${l.id}`}>บันทึกภายใน</label>
                     <textarea id={`n-${l.id}`} name="admin_note" defaultValue={l.admin_note ?? ""} className="input min-h-[80px]" /></div>
                   <button className="btn btn-primary btn-sm w-full">บันทึก</button>

@@ -1,3 +1,4 @@
+import { blueprintPrice, listPrice } from "./pricing";
 import type { PlanStyle } from "./types";
 
 /** Inputs the admin chooses; everything else in the plan form can be derived from these. */
@@ -115,7 +116,7 @@ export function autofillPlan(input: AutofillInput, existingCodes: string[] = [])
 
   const costMin = Math.round((area * s.rate[0]) / 1e5) / 10;
   const costMax = Math.round((area * s.rate[1]) / 1e5) / 10;
-  const price = Math.max(9900, Math.ceil((area * 90) / 1000) * 1000 - 100);
+  const price = blueprintPrice(area);
   const size = sizeWord(area, storeys);
 
   return {
@@ -140,7 +141,7 @@ export function autofillPlan(input: AutofillInput, existingCodes: string[] = [])
     build_cost_min: costMin.toFixed(1),
     build_cost_max: costMax.toFixed(1),
     price: String(price),
-    price_original: String(round(price * 1.3, 1000)),
+    price_original: String(listPrice(price)),
     pages_arch: String(24 + storeys * 6),
     pages_struct: String(14 + storeys * 4),
     pages_mep: String(10 + storeys * 3),

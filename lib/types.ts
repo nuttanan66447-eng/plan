@@ -148,4 +148,9 @@ export interface Lead {
   meta: Record<string, unknown>;
   admin_note: string | null;
   created_at: string;
+  order_no?: string | null;
+  order_status?: string | null;
+  carrier?: string | null;
+  tracking_no?: string | null;
+  order_updated_at?: string | null;
 }

@@ -2,12 +2,15 @@
 
 import { publicClient } from "@/lib/supabase/public";
 import type { LeadType } from "@/lib/types";
+import { newOrderNo } from "@/lib/orders";
 import { SITE } from "@/lib/site";
 
 export interface LeadState {
   ok: boolean;
   message: string;
   errors?: Record<string, string>;
+  /** set for blueprint orders: the number the customer tracks the order with */
+  orderNo?: string;
 }
 
 const TYPES: LeadType[] = ["consult", "custom_design", "inspection", "turnkey", "boq", "order", "callback"];
@@ -53,7 +56,7 @@ export async function submitLead(_prev: LeadState | null, fd: FormData): Promise
   const sb = publicClient();
   if (!sb) return { ok: false, message: `ระบบยังไม่ได้เชื่อมต่อฐานข้อมูล กรุณาโทร ${SITE.phone}` };
 
-  const { error } = await sb.from("leads").insert({
+  const row = {
     type,
     name,
     phone,
@@ -72,7 +75,17 @@ export async function submitLead(_prev: LeadState | null, fd: FormData): Promise
     preferred_slot: str(fd, "preferred_slot", 40),
     message: str(fd, "message", 4000),
     meta,
-  });
+  };
+  let orderNo: string | undefined;
+  let error: { code?: string; message: string } | null = null;
+  if (type === "order") {
+    // orders get a trackable number; retry on the (very unlikely) clash
+    for (let i = 0; i < 3; i++) {
+      orderNo = newOrderNo();
+      ({ error } = await sb.from("leads").insert({ ...row, order_no: orderNo, order_status: "pending_payment" }));
+      if (error?.code !== "23505") break;
+    }
+  } else ({ error } = await sb.from("leads").insert(row));
 
   if (error) {
     console.error("submitLead", error.message);
@@ -80,11 +93,46 @@ export async function submitLead(_prev: LeadState | null, fd: FormData): Promise
   }
   return {
     ok: true,
+    orderNo,
     message:
       type === "order"
         ? "รับคำสั่งซื้อแล้ว ทีมงานจะโทรยืนยันและส่งรายละเอียดการชำระเงินภายใน 2 ชั่วโมงทำการ"
         : "ได้รับข้อมูลเรียบร้อย สถาปนิกจะติดต่อกลับภายใน 24 ชั่วโมงทำการ",
   };
+}
+
+export interface TrackedOrder {
+  order_no: string;
+  plan_code: string | null;
+  service_package: string | null;
+  estimate_thb: number | null;
+  order_status: string | null;
+  carrier: string | null;
+  tracking_no: string | null;
+  created_at: string;
+  order_updated_at: string | null;
+}
+export interface TrackState {
+  error?: string;
+  order?: TrackedOrder;
+}
+
+/** Order lookup for customers: order number + the phone number used when ordering. */
+export async function trackOrder(_prev: TrackState | null, fd: FormData): Promise<TrackState> {
+  const orderNo = (str(fd, "order_no", 20) ?? "").toUpperCase().replace(/\s/g, "");
+  const phone = str(fd, "phone", 30) ?? "";
+  if (!/^NB\d{6}-[A-Z0-9]{4}$/.test(orderNo)) return { error: "เลขที่คำสั่งซื้อไม่ถูกต้อง (เช่น NB261010-7KQ4)" };
+  if (phone.replace(/\D/g, "").length < 9) return { error: "กรุณากรอกเบอร์โทรศัพท์ที่ใช้สั่งซื้อ" };
+  const sb = publicClient();
+  if (!sb) return { error: "ระบบยังไม่ได้เชื่อมต่อฐานข้อมูล" };
+  const { data, error } = await sb.rpc("track_order", { p_order_no: orderNo, p_phone: phone });
+  if (error) {
+    console.error("trackOrder", error.message);
+    return { error: `ค้นหาไม่สำเร็จ กรุณาลองใหม่ หรือโทร ${SITE.phone}` };
+  }
+  const order = (data as TrackedOrder[] | null)?.[0];
+  if (!order) return { error: "ไม่พบคำสั่งซื้อ กรุณาตรวจสอบเลขที่คำสั่งซื้อและเบอร์โทรศัพท์" };
+  return { order };
 }
 
 export interface ReviewState {

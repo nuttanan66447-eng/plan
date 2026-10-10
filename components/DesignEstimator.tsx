@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { baht, num } from "@/lib/format";
+import { DESIGN_PACKAGES, designFee } from "@/lib/pricing";
 import { Icon } from "./Icon";
 import { Field, LeadForm } from "./LeadForm";
 
@@ -14,11 +15,7 @@ const STYLES = [
   { key: "modern", label: "Contemporary", th: "คอนเทมโพรารี่", rate: 16000, img: "/images/built-roiet-modern.jpg", note: "ทรงกล่องหลังคาแบน ผิวผนังขาวตัดไม้" },
   { key: "minimal", label: "Minimal Box", th: "มินิมอล", rate: 13500, img: "/images/built-selaphum-courtyard.jpg", note: "เส้นสายเรียบง่าย ก่อสร้างไว คุมงบง่าย" },
 ];
-const PACKAGES = [
-  { key: "standard", label: "Standard Plan", th: "แบบสำเร็จรูป + ปรับเล็กน้อย", min: 25000, perSqm: 0 },
-  { key: "custom", label: "Custom Drafting", th: "เขียนแบบใหม่ 100%", min: 65000, perSqm: 220 },
-  { key: "turnkey", label: "Full-Turnkey BIM", th: "ออกแบบ + BIM + ภายใน", min: 120000, perSqm: 380 },
-];
+const PACKAGES = DESIGN_PACKAGES;
 const STEPS = ["ข้อมูลที่ดิน", "สไตล์สถาปัตย์", "ฟังก์ชันพื้นที่", "เตรียมเอกสาร"];
 
 export function DesignEstimator() {
@@ -43,7 +40,7 @@ export function DesignEstimator() {
     const gfa = Math.round(Math.min(Math.max(programme, 80), maxGfa));
     const extraCost = (extras.includes("pool") ? 450000 : 0) + (extras.includes("solar") ? 180000 : 0);
     const build = gfa * s.rate + extraCost;
-    const fee = Math.max(p.min, Math.round((gfa * p.perSqm) / 1000) * 1000);
+    const fee = designFee(p, gfa);
     return { land, sqwa: land / 4, gfa, fits: programme <= maxGfa, lo: build * 0.94, hi: build * 1.06, fee };
   }, [w, d, beds, baths, storeys, extras, s, p]);
 
