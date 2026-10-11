@@ -64,7 +64,8 @@ export function Header() {
                   isActive(n.href) ? "text-bronze-dark" : "text-ink hover:text-bronze-dark"
                 }`}
               >
-                {n.label}
+                {/* shorter labels until there is room for the full ones */}
+                {n.short ? <><span className="2xl:hidden">{n.short}</span><span className="hidden 2xl:inline">{n.label}</span></> : n.label}
                 {isActive(n.href) && <span className="absolute inset-x-2 -bottom-[17px] h-0.5 bg-bronze" />}
               </Link>
             ))}

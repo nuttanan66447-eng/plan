@@ -1,5 +1,5 @@
 import { publicClient } from "./supabase/public";
-import type { BoqItem, Plan, PlanStyle, Project, Review } from "./types";
+import type { BoqItem, Course, Plan, PlanStyle, Product, Project, Review } from "./types";
 
 export interface PlanFilters {
   q?: string;
@@ -144,4 +144,32 @@ export async function listReviews(planCode?: string) {
   if (planCode) q = q.eq("plan_code", planCode);
   const { data } = await q.order("sort_order").order("created_at", { ascending: false });
   return (data ?? []) as Review[];
+}
+
+export async function listCourses() {
+  const sb = publicClient();
+  if (!sb) return [] as Course[];
+  const { data } = await sb.from("courses").select("*").eq("is_published", true).order("sort_order");
+  return (data ?? []) as Course[];
+}
+
+export async function getCourse(slug: string) {
+  const sb = publicClient();
+  if (!sb) return null;
+  const { data } = await sb.from("courses").select("*").eq("slug", slug).eq("is_published", true).maybeSingle();
+  return data as Course | null;
+}
+
+export async function listProducts() {
+  const sb = publicClient();
+  if (!sb) return [] as Product[];
+  const { data } = await sb.from("products").select("*").eq("is_published", true).order("sort_order");
+  return (data ?? []) as Product[];
+}
+
+export async function getProduct(slug: string) {
+  const sb = publicClient();
+  if (!sb) return null;
+  const { data } = await sb.from("products").select("*").eq("slug", slug).eq("is_published", true).maybeSingle();
+  return data as Product | null;
 }

@@ -135,7 +135,7 @@ export interface Review {
   created_at?: string;
 }
 
-export type LeadType = "consult" | "custom_design" | "inspection" | "turnkey" | "boq" | "order" | "callback";
+export type LeadType = "consult" | "custom_design" | "inspection" | "turnkey" | "boq" | "order" | "callback" | "course";
 export type LeadStatus = "new" | "contacted" | "quoted" | "won" | "lost";
 
 export interface Lead {
@@ -166,4 +166,48 @@ export interface Lead {
   carrier?: string | null;
   tracking_no?: string | null;
   order_updated_at?: string | null;
+}
+
+export type CourseLevel = "beginner" | "intermediate" | "advanced";
+export type CourseFormat = "online" | "onsite" | "hybrid";
+
+export interface Course {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  category: string | null;
+  level: CourseLevel;
+  format: CourseFormat;
+  duration: string | null;
+  lessons: number | null;
+  price: number;
+  price_original: number | null;
+  image: string | null;
+  description: string | null;
+  syllabus: string[];
+  start_date: string | null;
+  location: string | null;
+  seats: number | null;
+  is_published?: boolean;
+  sort_order?: number;
+}
+
+export interface Product {
+  id: string;
+  slug: string;
+  name: string;
+  category: string | null;
+  kind: "physical" | "digital";
+  price: number;
+  price_original: number | null;
+  shipping_fee: number;
+  unit: string;
+  stock: number | null;
+  image: string | null;
+  gallery: string[];
+  description: string | null;
+  specs: string[];
+  is_published?: boolean;
+  sort_order?: number;
 }

@@ -41,7 +41,8 @@ export const LEAD_TYPE_LABEL: Record<string, string> = {
   inspection: "ตรวจบ้าน",
   turnkey: "รับเหมาสร้างบ้าน",
   boq: "ขอ BOQ",
-  order: "สั่งซื้อแบบ",
+  order: "สั่งซื้อ (แบบ / สินค้า)",
+  course: "สมัครคอร์สเรียน",
   callback: "ขอให้โทรกลับ",
 };
 
@@ -51,4 +52,11 @@ export const LEAD_STATUS_LABEL: Record<string, string> = {
   quoted: "เสนอราคาแล้ว",
   won: "ปิดการขาย",
   lost: "ไม่สำเร็จ",
+};
+
+export const COURSE_LEVEL_LABEL: Record<string, string> = { beginner: "พื้นฐาน", intermediate: "ปานกลาง", advanced: "ขั้นสูง" };
+export const COURSE_FORMAT_LABEL: Record<string, { label: string; icon: string }> = {
+  online: { label: "ออนไลน์", icon: "laptop_mac" },
+  onsite: { label: "เรียนที่สถานที่จริง", icon: "groups" },
+  hybrid: { label: "ออนไลน์ + เวิร์กช็อป", icon: "devices" },
 };

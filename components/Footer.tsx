@@ -31,6 +31,8 @@ export function Footer() {
             {CATEGORIES.map((c) => (
               <li key={c.href}><Link href={c.href} className="hover:text-bronze-dark">{c.label}</Link></li>
             ))}
+            <li className="pt-2"><Link href="/courses" className="flex items-center gap-1.5 font-semibold text-ink hover:text-bronze-dark"><Icon name="school" className="text-bronze" />คอร์สเรียน NATBUILD Academy</Link></li>
+            <li><Link href="/shop" className="flex items-center gap-1.5 font-semibold text-ink hover:text-bronze-dark"><Icon name="storefront" className="text-bronze" />ร้านค้า เอกสาร & อุปกรณ์</Link></li>
           </ul>
         </div>
         <div>

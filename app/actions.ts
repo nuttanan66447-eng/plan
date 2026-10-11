@@ -14,8 +14,8 @@ export interface LeadState {
   orderNo?: string;
 }
 
-const TYPES: LeadType[] = ["consult", "custom_design", "inspection", "turnkey", "boq", "order", "callback"];
-const META_KEYS = ["storeys", "style", "rooms", "deliverables", "steps", "source", "service_type", "house_status"];
+const TYPES: LeadType[] = ["consult", "custom_design", "inspection", "turnkey", "boq", "order", "callback", "course"];
+const META_KEYS = ["storeys", "style", "rooms", "deliverables", "steps", "source", "service_type", "house_status", "course_slug", "product_slug", "qty", "line_id_note"];
 
 const str = (fd: FormData, k: string, max = 200) => {
   const v = fd.get(k);
