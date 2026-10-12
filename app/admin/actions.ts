@@ -194,7 +194,11 @@ export async function savePlan(_prev: PlanFormState | null, fd: FormData): Promi
     return { error: "บันทึกไม่สำเร็จ: " + error.message };
   }
   revalidatePlan(code);
-  if (old?.code && old.code !== code) revalidatePlan(old.code);
+  if (old?.code && old.code !== code) {
+    // orders and enquiries keep pointing at the plan (order downloads look the plan up by code)
+    await sb.from("leads").update({ plan_code: code }).eq("plan_code", old.code);
+    revalidatePlan(old.code);
+  }
   // a new plan opens in the editor so BOQ, floor plans etc. can be added straight away
   if (!id) redirect(`/admin/plans/${saved?.id}?created=1`);
   return { saved: true };

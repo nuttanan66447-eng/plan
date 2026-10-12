@@ -87,6 +87,7 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
   const [hotspots, setHotspots] = useState<Hotspot[]>(plan ? plan.hotspots ?? DEFAULT_HOTSPOTS : []);
   const [autoMsg, setAutoMsg] = useState<string | null>(null);
   const codeRef = useRef<HTMLInputElement>(null);
+  const [codeNow, setCodeNow] = useState(plan?.code ?? "");
   const formRef = useRef<HTMLFormElement>(null);
 
   /** Fills every empty (or previously auto-filled) field from style + size. Fields typed by hand are never replaced. */
@@ -112,14 +113,18 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
     let n = 0;
     for (const [k, v] of Object.entries(values)) {
       const el = field(k);
-      if (!el || (k === "code" && plan) || el.value === v) continue;
-      const replaceable = !el.value.trim() || el.dataset.auto === "1" || (recalc && DERIVED.includes(k)) || el.value === baseline.current[k];
+      if (!el || el.value === v) continue;
+      // the code is the page link: on a saved plan it only follows the style while it is still the generated one
+      const replaceable = k === "code" && plan
+        ? el.value === baseline.current[k] || el.dataset.auto === "1"
+        : !el.value.trim() || el.dataset.auto === "1" || (recalc && DERIVED.includes(k)) || el.value === baseline.current[k];
       if (!replaceable) continue;
       el.value = v;
       el.dataset.auto = "1";
       n++;
     }
     baseline.current = values;
+    setCodeNow(field("code")?.value ?? "");
     return n;
   };
   const snapshot = () => {
@@ -248,8 +253,13 @@ export function PlanEditor({ plan, boqCount = 0, codes = [] }: { plan?: Plan & {
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             <div className="field">
               <label htmlFor="p-code" className="field-label">รหัสแบบ <span className="text-bronze-dark">*</span></label>
-              <input id="p-code" ref={codeRef} name="code" defaultValue={plan?.code} placeholder="AP-MODERN-05" required className="input uppercase" />
-              <span className="text-[11px] text-subtle">ใช้เป็นลิงก์หน้าแบบ /plans/รหัส</span>
+              <input id="p-code" ref={codeRef} name="code" onInput={(e) => setCodeNow(e.currentTarget.value)} defaultValue={plan?.code} placeholder="AP-MODERN-05" required className="input uppercase" />
+              {plan && codeNow.trim().toUpperCase() !== plan.code ? (
+                <span className="text-[11.5px] text-bronze-dark">
+                  เปลี่ยนรหัสจาก <b>{plan.code}</b> — ลิงก์หน้าแบบจะเปลี่ยนเป็น /plans/{codeNow.trim().toUpperCase()} (ลิงก์เดิมที่แชร์ไปแล้วจะเปิดไม่ได้) • คำสั่งซื้อเดิมย้ายไปใช้รหัสใหม่ให้อัตโนมัติ •{" "}
+                  <button type="button" className="underline" onClick={() => { if (codeRef.current) { codeRef.current.value = plan.code; delete codeRef.current.dataset.auto; setCodeNow(plan.code); } }}>ใช้รหัสเดิม</button>
+                </span>
+              ) : <span className="text-[11px] text-subtle">ใช้เป็นลิงก์หน้าแบบ /plans/รหัส</span>}
             </div>
             <Text name="name_en" label="ชื่อแบบ (อังกฤษ)" value={plan?.name_en} required placeholder="Nordic Family Villa" />
             <Text name="name_th" label="ชื่อแบบ (ไทย)" value={plan?.name_th} required placeholder="บ้านนอร์ดิกสองชั้น" />
