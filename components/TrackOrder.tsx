@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { trackOrder, type TrackState } from "@/app/actions";
+import { payOrder, trackOrder, type PayState, type TrackState } from "@/app/actions";
 import { baht } from "@/lib/format";
 import { CARRIERS, ORDER_STEPS } from "@/lib/orders";
 import { Icon } from "./Icon";
@@ -16,7 +16,20 @@ const FILE_ICON: Record<string, string> = {
 const date = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }) : "";
 
-export function TrackOrder({ initialOrderNo }: { initialOrderNo: string }) {
+function PayNow({ orderNo, phone }: { orderNo: string; phone: string }) {
+  const [state, action, pending] = useActionState<PayState | null, FormData>(payOrder, null);
+  return (
+    <form action={action} className="mt-4 flex flex-wrap items-center gap-3 border border-bronze/50 bg-[#fbf6ee] p-4">
+      <input type="hidden" name="order_no" value={orderNo} />
+      <input type="hidden" name="phone" value={phone} />
+      <p className="min-w-[200px] flex-1 text-[13px]"><b className="block text-[14px]">ชำระเงินออนไลน์ได้ทันที</b>บัตรเครดิต/เดบิต หรือ PromptPay ผ่าน Stripe — ระบบอัปเดตสถานะให้อัตโนมัติ</p>
+      <button disabled={pending} className="btn btn-primary">{pending ? <Icon name="progress_activity" className="animate-spin" /> : <Icon name="credit_card" />} ชำระเงินตอนนี้</button>
+      {state?.error && <p className="w-full text-[13px] text-danger" role="alert">{state.error}</p>}
+    </form>
+  );
+}
+
+export function TrackOrder({ initialOrderNo, notice }: { initialOrderNo: string; notice?: "paid" | "cancelled" }) {
   const [state, action, pending] = useActionState<TrackState | null, FormData>(trackOrder, null);
   const o = state?.order;
   const current = o ? ORDER_STEPS.findIndex((s) => s.key === o.order_status) : -1;
@@ -24,6 +37,16 @@ export function TrackOrder({ initialOrderNo }: { initialOrderNo: string }) {
 
   return (
     <div className="space-y-5">
+      {notice === "paid" && !o && (
+        <p className="flex items-start gap-2 border border-success/40 bg-[#f1f8f3] p-4 text-[14px]" role="status">
+          <Icon name="verified" className="text-success" /><span><b>ชำระเงินเรียบร้อย ขอบคุณครับ</b> — กรอกเบอร์โทรด้านล่างเพื่อดูสถานะ (PromptPay อาจใช้เวลาสักครู่กว่าสถานะจะอัปเดต)</span>
+        </p>
+      )}
+      {notice === "cancelled" && !o && (
+        <p className="flex items-start gap-2 border border-hairline bg-wash p-4 text-[14px]" role="status">
+          <Icon name="info" /><span>ยังไม่ได้ชำระเงิน — คำสั่งซื้อยังอยู่ กรอกเบอร์โทรด้านล่างแล้วกด “ชำระเงินตอนนี้” ได้ทุกเมื่อ</span>
+        </p>
+      )}
       <form action={action} className="card grid gap-3 p-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
         <label className="field">
           <span className="field-label">เลขที่คำสั่งซื้อ</span>
@@ -48,6 +71,7 @@ export function TrackOrder({ initialOrderNo }: { initialOrderNo: string }) {
             {o.estimate_thb != null && <p className="text-right"><span className="block text-[12px] text-muted">ยอดรวม</span><b className="font-display text-[22px] text-bronze-dark">{baht(o.estimate_thb)}</b></p>}
           </div>
           {o.service_package && <p className="mt-3 text-[13px] text-ink-3">{o.service_package}</p>}
+          {state?.canPay && state.phone && <PayNow orderNo={o.order_no} phone={state.phone} />}
 
           {o.order_status === "cancelled" ? (
             <p className="mt-5 flex items-center gap-2 bg-[#fff1ef] p-3 text-[14px] font-semibold text-danger"><Icon name="cancel" /> คำสั่งซื้อนี้ถูกยกเลิก — สอบถามเพิ่มเติมได้ที่ทีมงาน</p>

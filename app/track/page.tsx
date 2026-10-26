@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default async function TrackPage({ searchParams }: { searchParams: Promise<{ order?: string }> }) {
-  const { order } = await searchParams;
+export default async function TrackPage({ searchParams }: { searchParams: Promise<{ order?: string; paid?: string; cancelled?: string }> }) {
+  const { order, paid, cancelled } = await searchParams;
   return (
     <section className="blueprint min-h-[70vh] py-12">
       <div className="shell max-w-3xl">
@@ -19,7 +19,7 @@ export default async function TrackPage({ searchParams }: { searchParams: Promis
           กรอกเลขที่คำสั่งซื้อ (ได้รับหลังกดสั่งซื้อ) และเบอร์โทรที่ใช้สั่งซื้อ เพื่อดูสถานะการชำระเงิน การจัดเตรียมแบบ และเลขพัสดุ •
           ไม่พบเลขที่คำสั่งซื้อ? โทร <a href={SITE.phoneHref} className="font-semibold text-bronze-dark">{SITE.phone}</a> หรือ LINE <a href={SITE.lineHref} className="font-semibold text-bronze-dark">{SITE.line}</a>
         </p>
-        <div className="mt-6"><TrackOrder initialOrderNo={order?.toUpperCase().slice(0, 20) ?? ""} /></div>
+        <div className="mt-6"><TrackOrder initialOrderNo={order?.toUpperCase().slice(0, 20) ?? ""} notice={paid ? "paid" : cancelled ? "cancelled" : undefined} /></div>
       </div>
     </section>
   );

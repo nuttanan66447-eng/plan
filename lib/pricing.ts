@@ -40,3 +40,17 @@ export const designFee = (p: { min: number; perSqm: number }, area: number) => M
 /** Extras on the standard package that the bigger packages include. */
 export const ENGINEERING_CALC = { perSqm: 20, min: 3000 };
 export const BOQ_SERVICE = { perSqm: 25, min: 3000 };
+
+/**
+ * Total for a blueprint order — used by the order form and, authoritatively, by the server before payment.
+ * Permit filing needs the Roi Et province and already contains the site plan.
+ */
+export function planOrderTotal(price: number, area: number, keys: string[], province: string | null) {
+  const picked = ORDER_ADDONS.filter((a) => keys.includes(a.key) && (!("province" in a) || province === a.province));
+  const covered = new Set<string>(picked.flatMap((a) => ("includes" in a ? [a.includes] : [])));
+  const chosen = picked.filter((a) => !covered.has(a.key)).map((a) => ({ key: a.key, label: a.label, price: addonPrice(a, area) }));
+  return { chosen, covered, total: price + chosen.reduce((s, a) => s + a.price, 0) };
+}
+
+export const PLAN_BASE_LABEL = "ชุดแบบมาตรฐาน (เล่มแบบ 5 ชุด + รายการคำนวณฟรี + BOQ ฟรี)";
+export const planPackage = (chosen: { label: string }[]) => [PLAN_BASE_LABEL, ...chosen.map((a) => a.label)].join(" + ");

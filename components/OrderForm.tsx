@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { baht } from "@/lib/format";
-import { addonPrice, ORDER_ADDONS, PERMIT_PROVINCE } from "@/lib/pricing";
+import { addonPrice, ORDER_ADDONS, PERMIT_PROVINCE, planOrderTotal, planPackage } from "@/lib/pricing";
 import { DeedUpload } from "./DeedUpload";
 import { Icon } from "./Icon";
 import { Field, LeadForm } from "./LeadForm";
@@ -24,16 +24,13 @@ export function OrderForm({ code, price, area }: { code: string; price: number; 
   const [otherProvince, setOtherProvince] = useState("");
   const province = where === "roiet" ? PERMIT_PROVINCE : otherProvince.trim();
   const allowed = (a: { province?: string }) => !a.province || where === "roiet";
-  const picked = ADDONS.filter((a) => sel.includes(a.key) && allowed(a));
-  // an add-on that already contains another (permit filing → site plan) makes the inner one free
-  const covered = new Set<string>(picked.flatMap((a) => (a.includes ? [a.includes] : [])));
-  const chosen = picked.filter((a) => !covered.has(a.key));
-  const total = price + chosen.reduce((s, a) => s + a.price, 0);
-  const pkg = ["ชุดแบบมาตรฐาน (เล่มแบบ 5 ชุด + รายการคำนวณฟรี + BOQ ฟรี)", ...chosen.map((a) => a.label)].join(" + ");
+  // same calculation the server uses to price the order
+  const { chosen, covered, total } = planOrderTotal(price, area, sel, province);
+  const pkg = planPackage(chosen);
   const needsDeed = chosen.some((a) => a.key === "permit" || a.key === "siteplan");
 
   return (
-    <LeadForm type="order" hidden={{ plan_code: code, estimate_thb: total, service_package: pkg.slice(0, 80), deliverables: pkg, province }} submitLabel={`ยืนยันสั่งซื้อ (${baht(total)})`} successTitle="รับคำสั่งซื้อเรียบร้อย">
+    <LeadForm type="order" hidden={{ plan_code: code, addons: chosen.map((a) => a.key).join(","), estimate_thb: total, service_package: pkg.slice(0, 80), deliverables: pkg, province }} submitLabel={`ยืนยันสั่งซื้อ (${baht(total)})`} successTitle="รับคำสั่งซื้อเรียบร้อย">
       <div className="border border-hairline bg-wash p-4">
         <div className="flex items-center justify-between text-[13.5px]">
           <span>ชุดแบบก่อสร้างมาตรฐาน {code}</span><b>{baht(price)}</b>

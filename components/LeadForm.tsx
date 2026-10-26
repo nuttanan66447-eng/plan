@@ -50,7 +50,10 @@ export function LeadForm({ type, hidden = {}, submitLabel, children, className =
           <div className="w-full border border-ink bg-white p-4">
             <p className="text-[12px] text-muted">เลขที่คำสั่งซื้อ — บันทึกไว้เพื่อติดตามสถานะ</p>
             <p className="font-display text-[26px] font-bold tracking-[0.04em]">{state.orderNo}</p>
-            <Link href={`/track?order=${state.orderNo}`} className="btn btn-primary btn-sm mt-2"><Icon name="local_shipping" /> ติดตามสถานะคำสั่งซื้อ</Link>
+            {state.checkoutUrl && (
+              <a href={state.checkoutUrl} className="btn btn-primary mt-3 w-full justify-center"><Icon name="credit_card" /> ชำระเงินออนไลน์</a>
+            )}
+            <Link href={`/track?order=${state.orderNo}`} className={`btn btn-sm mt-2 ${state.checkoutUrl ? "btn-outline" : "btn-primary"}`}><Icon name="local_shipping" /> ติดตามสถานะคำสั่งซื้อ</Link>
             <p className="mt-2 text-[11.5px] text-muted">ตรวจสอบสถานะการชำระเงินและการจัดส่งได้ตลอดที่หน้า “ติดตามคำสั่งซื้อ” ด้วยเลขที่นี้ + เบอร์โทรที่ใช้สั่งซื้อ</p>
           </div>
         )}
